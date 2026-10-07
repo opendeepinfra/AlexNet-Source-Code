@@ -27,8 +27,8 @@ class ConvNet(IGPUModel):
         
     def import_model(self):
         lib_name = "_ConvNet_k20x" if is_kepler_machine() else "_ConvNet"
-        print "========================="
-        print "Importing %s C++ module" % lib_name
+        print("=========================")
+        print("Importing %s C++ module" % lib_name)
         self.libmodel = __import__(lib_name) 
         
     def init_model_lib(self):
@@ -117,19 +117,19 @@ class ConvNet(IGPUModel):
         return ret
     
     def print_iteration(self):
-        print "%d.%d..." % (self.epoch, self.batchnum),
+        print("%d.%d..." % (self.epoch, self.batchnum), end=' ')
         
     def print_train_time(self, compute_time_py):
-        print "(%.3f sec)" % (compute_time_py)
+        print("(%.3f sec)" % (compute_time_py))
         
     def print_costs(self, cost_outputs):
         costs, num_cases = cost_outputs[0], cost_outputs[1]
-        for errname in costs.keys():
+        for errname in list(costs.keys()):
             costs[errname] = [(v/num_cases) for v in costs[errname]]
-            print "%s: " % errname,
-            print ", ".join("%.6f" % v for v in costs[errname]),
+            print("%s: " % errname, end=' ')
+            print(", ".join("%.6f" % v for v in costs[errname]), end=' ')
             if sum(m.isnan(v) for v in costs[errname]) > 0 or sum(m.isinf(v) for v in costs[errname]):
-                print "^ got nan or inf!"
+                print("^ got nan or inf!")
                 sys.exit(1)
         
     def print_train_results(self):
@@ -139,34 +139,34 @@ class ConvNet(IGPUModel):
         pass
         
     def print_test_results(self):
-        print NL + "======================Test output======================"
+        print(NL + "======================Test output======================")
         self.print_costs(self.test_outputs[-1])
-        print NL + "----------------------Averages-------------------------"
+        print(NL + "----------------------Averages-------------------------")
         self.print_costs((self.aggregate_test_outputs(self.test_outputs[-len(self.test_batch_range):])[0], min(len(self.test_outputs), len(self.test_batch_range))))
-        print NL + "-------------------------------------------------------",
+        print(NL + "-------------------------------------------------------", end=' ')
         for name in sorted(self.layers.keys()): # This is kind of hacky but will do for now.
             l = self.layers[name]
             if 'weights' in l:
                 if type(l['weights']) == n.ndarray:
-                    print "%sLayer '%s' weights: %e [%e]" % (NL, l['name'], n.mean(n.abs(l['weights'])), n.mean(n.abs(l['weightsInc']))),
+                    print("%sLayer '%s' weights: %e [%e]" % (NL, l['name'], n.mean(n.abs(l['weights'])), n.mean(n.abs(l['weightsInc']))), end=' ')
                 elif type(l['weights']) == list:
-                    print ""
-                    print NL.join("Layer '%s' weights[%d]: %e [%e]" % (l['name'], i, n.mean(n.abs(w)), n.mean(n.abs(wi))) for i,(w,wi) in enumerate(zip(l['weights'],l['weightsInc']))),
-                print "%sLayer '%s' biases: %e [%e]" % (NL, l['name'], n.mean(n.abs(l['biases'])), n.mean(n.abs(l['biasesInc']))),
-        print ""
+                    print("")
+                    print(NL.join("Layer '%s' weights[%d]: %e [%e]" % (l['name'], i, n.mean(n.abs(w)), n.mean(n.abs(wi))) for i,(w,wi) in enumerate(zip(l['weights'],l['weightsInc']))), end=' ')
+                print("%sLayer '%s' biases: %e [%e]" % (NL, l['name'], n.mean(n.abs(l['biases'])), n.mean(n.abs(l['biasesInc']))), end=' ')
+        print("")
         
     def conditional_save(self):
         self.save_state()
-        print "-------------------------------------------------------"
-        print "Saved checkpoint to %s" % os.path.join(self.save_path, self.save_file)
-        print "=======================================================",
+        print("-------------------------------------------------------")
+        print("Saved checkpoint to %s" % os.path.join(self.save_path, self.save_file))
+        print("=======================================================", end=' ')
         
     def aggregate_test_outputs(self, test_outputs):
         test_outputs = cp.deepcopy(test_outputs)
         num_cases = sum(t[1] for t in test_outputs)
-        for i in xrange(1 ,len(test_outputs)):
-            for k,v in test_outputs[i][0].items():
-                for j in xrange(len(v)):
+        for i in range(1 ,len(test_outputs)):
+            for k,v in list(test_outputs[i][0].items()):
+                for j in range(len(v)):
                     test_outputs[0][0][k][j] += test_outputs[i][0][k][j]
         
         return (test_outputs[0][0], num_cases)

@@ -50,7 +50,7 @@ class CroppedCIFARDataProvider(LabeledMemoryDataProvider):
             d['data'] = n.require(d['data'], requirements='C')
             d['labels'] = n.require(n.tile(d['labels'].reshape((1, d['data'].shape[1])), (1, self.data_mult)), requirements='C')
         
-        self.cropped_data = [n.zeros((self.get_data_dims(), self.data_dic[0]['data'].shape[1]*self.data_mult), dtype=n.single) for x in xrange(2)]
+        self.cropped_data = [n.zeros((self.get_data_dims(), self.data_dic[0]['data'].shape[1]*self.data_mult), dtype=n.single) for x in range(2)]
 
         self.batches_generated = 0
         self.data_mean = self.batch_meta['data_mean'].reshape((3,32,32))[:,self.border_size:self.border_size+self.inner_size,self.border_size:self.border_size+self.inner_size].reshape((self.get_data_dims(), 1))
@@ -84,13 +84,13 @@ class CroppedCIFARDataProvider(LabeledMemoryDataProvider):
                                   (self.border_size, 0), (self.border_size, self.border_size), (self.border_size, self.border_size*2),
                                   (self.border_size*2, 0), (self.border_size*2, self.border_size), (self.border_size*2, self.border_size*2)]
                 end_positions = [(sy+self.inner_size, sx+self.inner_size) for (sy,sx) in start_positions]
-                for i in xrange(self.num_views):
+                for i in range(self.num_views):
                     target[:,i * x.shape[1]:(i+1)* x.shape[1]] = y[:,start_positions[i][0]:end_positions[i][0],start_positions[i][1]:end_positions[i][1],:].reshape((self.get_data_dims(),x.shape[1]))
             else:
                 pic = y[:,self.border_size:self.border_size+self.inner_size,self.border_size:self.border_size+self.inner_size, :] # just take the center for now
                 target[:,:] = pic.reshape((self.get_data_dims(), x.shape[1]))
         else:
-            for c in xrange(x.shape[1]): # loop over cases
+            for c in range(x.shape[1]): # loop over cases
                 startY, startX = nr.randint(0,self.border_size*2 + 1), nr.randint(0,self.border_size*2 + 1)
                 endY, endX = startY + self.inner_size, startX + self.inner_size
                 pic = y[:,startY:endY,startX:endX, c]

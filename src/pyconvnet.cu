@@ -55,6 +55,34 @@ static PyMethodDef _ConvNetMethods[] = {{ "initModel",          initModel,      
                                         { NULL, NULL }
 };
 
+/* Token-pasting helpers, used to spell the Python 3 init function as
+ * PyInit_<MODELNAME> without hard-coding the module name twice. */
+#define CONVNET_CAT_(a, b) a##b
+#define CONVNET_CAT(a, b) CONVNET_CAT_(a, b)
+
+#if PY_MAJOR_VERSION >= 3
+
+static struct PyModuleDef _convNetModuleDef = {
+    PyModuleDef_HEAD_INIT,
+    QUOTEME(MODELNAME),   /* module name, i.e. "_ConvNet" */
+    NULL,
+    -1,
+    _ConvNetMethods
+};
+
+/* Python 3 module initialiser: PyInit__ConvNet. */
+PyMODINIT_FUNC CONVNET_CAT(PyInit_, MODELNAME)(void) {
+    PyObject* m = PyModule_Create(&_convNetModuleDef);
+    if (m == NULL) {
+        return NULL;
+    }
+    /* numpy: on failure this sets an exception and returns NULL. */
+    import_array();
+    return m;
+}
+
+#else  /* Python 2 */
+
 #if defined(_WIN64) || defined(_WIN32)
 extern "C" __declspec(dllexport) void initpyconvnet() {
     (void) Py_InitModule("pyconvnet", _ConvNetMethods);
@@ -66,6 +94,8 @@ void INITNAME() {
     import_array();
 }
 #endif
+
+#endif /* PY_MAJOR_VERSION */
 
 PyObject* initModel(PyObject *self, PyObject *args) {
     assert(model == NULL);

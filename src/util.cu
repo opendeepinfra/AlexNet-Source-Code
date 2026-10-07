@@ -34,7 +34,7 @@ stringv* getStringV(PyObject* pyList) {
     }
     stringv* vec = new stringv(); 
     for (int i = 0; i < PyList_GET_SIZE(pyList); i++) {
-        vec->push_back(string(PyString_AS_STRING(PyList_GET_ITEM(pyList, i))));
+        vec->push_back(string(PyUnicode_AsUTF8(PyList_GET_ITEM(pyList, i))));
     }
     return vec;
 }
@@ -56,7 +56,7 @@ intv* getIntV(PyObject* pyList) {
     }
     intv* vec = new intv(); 
     for (int i = 0; i < PyList_GET_SIZE(pyList); i++) {
-        vec->push_back(PyInt_AS_LONG(PyList_GET_ITEM(pyList, i)));
+        vec->push_back(PyLong_AsLong(PyList_GET_ITEM(pyList, i)));
     }
     return vec;
 }
@@ -67,7 +67,7 @@ int* getIntA(PyObject* pyList) {
     }
     int* arr = new int[PyList_GET_SIZE(pyList)];
     for (int i = 0; i < PyList_GET_SIZE(pyList); i++) {
-        arr[i] = PyInt_AS_LONG(PyList_GET_ITEM(pyList, i));
+        arr[i] = PyLong_AsLong(PyList_GET_ITEM(pyList, i));
     }
     return arr;
 }
@@ -88,7 +88,7 @@ MatrixV* getMatrixV(PyObject* pyList, int len) {
 }
 
 int pyDictGetInt(PyObject* dict, const char* key) {
-    return PyInt_AS_LONG(PyDict_GetItemString(dict, key));
+    return PyLong_AsLong(PyDict_GetItemString(dict, key));
 }
 
 intv* pyDictGetIntV(PyObject* dict, const char* key) {
@@ -100,7 +100,7 @@ int* pyDictGetIntA(PyObject* dict, const char* key) {
 }
 
 string pyDictGetString(PyObject* dict, const char* key) {
-    return string(PyString_AS_STRING(PyDict_GetItemString(dict, key)));
+    return string(PyUnicode_AsUTF8(PyDict_GetItemString(dict, key)));
 }
 
 float pyDictGetFloat(PyObject* dict, const char* key) {

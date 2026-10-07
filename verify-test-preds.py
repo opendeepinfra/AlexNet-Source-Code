@@ -4,12 +4,12 @@ import pylab as pl
 import numpy as n
 import numpy.random as nr
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
 
 def print_top5(preds, lnames):
-    print preds
-    for i in xrange(len(preds)):
-        print "Label %d: %s" %(i, lnames[preds[i]])
+    print(preds)
+    for i in range(len(preds)):
+        print("Label %d: %s" %(i, lnames[preds[i]]))
 
 if __name__ == "__main__":
     pred_path = sys.argv[1]
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     img_idx = nr.randint(len(data))
     meta = unpickle(os.path.join(data_path, 'batches.meta'))
     lnames = meta['label_names']
-    print "Batch: %d, img idx: %d" % (batch, img_idx)
+    print("Batch: %d, img idx: %d" % (batch, img_idx))
 
     img = n.asarray(Image.open(StringIO(data[img_idx])).convert('RGB'))
 

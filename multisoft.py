@@ -10,7 +10,7 @@ def sumprod_brute(elts, size, fixed = -1):
         if size == 0:
             return 0
         z = 0
-        for s in xrange(size):
+        for s in range(size):
             z += sumprod_brute(elts[:fixed], s) * sumprod_brute(elts[fixed+1:], size - 1 - s)
         return z * exp(elts[fixed])
     if size == 0:
@@ -29,10 +29,10 @@ def sumprod(elts, size, fixed = -1):
         B[0, :fixed+1] = 0
     logBNorms = np.zeros(N+2)
     # Backward pass
-    for i in xrange(N - 1, -1, -1):
+    for i in range(N - 1, -1, -1):
         B[0,i] = B[0,i+1]
         #B[1, i] = exp(LogBNorms[i+2] + elts[i]) + B[1, i + 1] * (fixed != i)
-        for s in xrange(1, size + 1):
+        for s in range(1, size + 1):
             B[s, i] = B[s - 1, i + 1] * exp(elts[i]) + B[s, i + 1] * (fixed != i)
         norm = B[:,i].sum()
         B[:,i] /= norm
@@ -50,8 +50,8 @@ def sumprod(elts, size, fixed = -1):
     # Compute z_j for each j (unnormalized prob)
     z = np.zeros(N)
     logFNorm = 0
-    for i in xrange(1, N + 1):
-        for s in xrange(size, -1, -1):
+    for i in range(1, N + 1):
+        for s in range(size, -1, -1):
             if s < size:
                 z[i - 1] += F[s] * B[size - 1 - s, i]
             if s > 0:
@@ -76,19 +76,19 @@ def check_grad(elts, size, correct=0):
     y = z / Z
     Cy = cz / CZ
     grad = Cy - y
-    print "Analytic gradient: "
-    print grad
+    print("Analytic gradient: ")
+    print(grad)
     
     grad_num = np.zeros_like(grad)
-    for i in xrange(N):
+    for i in range(N):
         tmp = elts[i]
         elts[i] += eps
         z, Z = sumprod(elts, size)
         y_n = z / Z
         grad_num[i] = (log(y_n[correct]) - log(y[correct])) / eps
         elts[i] = tmp
-    print "Numeric gradient: "
-    print grad_num
+    print("Numeric gradient: ")
+    print(grad_num)
     
 if __name__ == "__main__":
     nr.seed(2)
@@ -97,24 +97,24 @@ if __name__ == "__main__":
     fixed = 2 # Force this index to be on (negative = don't)
     elts = nr.randn(N)
     elts -= elts.max()
-    print elts
+    print(elts)
     
     dp_z, dp_Z = sumprod(elts, size, fixed=fixed)
     bf_Z = sumprod_brute(elts, size, fixed=fixed)
-    print "Brute force Z: %f" % bf_Z
-    print "DP Z: %f" % dp_Z
+    print("Brute force Z: %f" % bf_Z)
+    print("DP Z: %f" % dp_Z)
     
-    print "Brute force z/Z:"
+    print("Brute force z/Z:")
     bf_z = np.zeros(N)
-    for i in xrange(N):
-        for s in xrange(size):
+    for i in range(N):
+        for s in range(size):
             bf_z[i] += sumprod_brute(elts[:i], s, fixed=fixed) * sumprod_brute(elts[i+1:], size - 1 - s, fixed=fixed-i-1)
         bf_z[i] *= exp(elts[i])
 
-    print bf_z / bf_Z
+    print(bf_z / bf_Z)
     
-    print "DP z/Z:"
-    print dp_z / dp_Z
+    print("DP z/Z:")
+    print(dp_z / dp_Z)
     
     check_grad(elts, size, correct=1)
     

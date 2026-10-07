@@ -19,7 +19,7 @@ class FlatMemoryDataProvider(LabeledMemoryDataProvider):
             d['data'] = n.require((d['data'] - self.data_mean), dtype=n.single, requirements='C')
             d['labels'] = d['labels'].astype(n.int)
             d['labelprobs'] = n.zeros((self.get_num_classes(), d['data'].shape[1]), dtype=n.single)
-            for c in xrange(d['data'].shape[1]):
+            for c in range(d['data'].shape[1]):
                 d['labelprobs'][d['labels'][c],c] = 1.0
             
     def get_next_batch(self):
@@ -127,7 +127,7 @@ class CroppedImageNetDP(ImageNetDP):
         # Maintain poitners to previously-returned data matrices so they don't get garbage collected.
         # I've never seen this happen but it's a safety measure.
         self.data = [None, None]
-        self.cropped_data = [n.zeros((self.get_data_dims(), 0*self.data_mult), dtype=n.single) for x in xrange(2)]
+        self.cropped_data = [n.zeros((self.get_data_dims(), 0*self.data_mult), dtype=n.single) for x in range(2)]
         
         self.loader_thread, self.color_noise_thread = None, None
         self.convnet = dp_params['convnet']
@@ -241,7 +241,7 @@ class CroppedImageNetDP(ImageNetDP):
                                    (self.border_size, self.border_size),
                                   (self.border_size*2, 0), (self.border_size*2, self.border_size*2)]
                 end_positions = [(sy+self.inner_size, sx+self.inner_size) for (sy,sx) in start_positions]
-                for i in xrange(self.num_views/2):
+                for i in range(self.num_views/2):
                     pic = y[:,start_positions[i][0]:end_positions[i][0],start_positions[i][1]:end_positions[i][1],:]
                     target[:,i * x.shape[1]:(i+1)* x.shape[1]] = pic.reshape((self.get_data_dims(),x.shape[1]))
                     target[:,(self.num_views/2 + i) * x.shape[1]:(self.num_views/2 +i+1)* x.shape[1]] = pic[:,:,::-1,:].reshape((self.get_data_dims(),x.shape[1]))
@@ -249,7 +249,7 @@ class CroppedImageNetDP(ImageNetDP):
                 pic = y[:,self.border_size:self.border_size+self.inner_size,self.border_size:self.border_size+self.inner_size, :] # just take the center for now
                 target[:,:] = pic.reshape((self.get_data_dims(), x.shape[1]))
         else:
-            for c in xrange(0, x.shape[1], self.crop_chunk): # loop over cases in chunks
+            for c in range(0, x.shape[1], self.crop_chunk): # loop over cases in chunks
                 startY, startX = nr.randint(0,self.border_size*2 + 1), nr.randint(0,self.border_size*2 + 1)
 
                 endY, endX = startY + self.inner_size, startX + self.inner_size
@@ -282,7 +282,7 @@ class RandomScaleImageNetLogRegDP(CroppedImageNetLogRegDP):
                                (self.border_size, 0), (self.border_size, self.border_size), (self.border_size, self.border_size*2),
                               (self.border_size*2, 0), (self.border_size*2, self.border_size), (self.border_size*2, self.border_size*2)]
             end_positions = [(sy+self.inner_size, sx+self.inner_size) for (sy,sx) in start_positions]
-            for i in xrange(self.num_views):
+            for i in range(self.num_views):
                 target[:,i * x.shape[1]:(i+1)* x.shape[1]] = y[:,start_positions[i][0]:end_positions[i][0],start_positions[i][1]:end_positions[i][1],:].reshape((self.inner_size**2*3,x.shape[1]))
             return self.subtract_mean(target)
         elif not self.test:
@@ -293,7 +293,7 @@ class RandomScaleImageNetLogRegDP(CroppedImageNetLogRegDP):
     
     def reflect_data(self, x, target):
         y = x.reshape(3, self.img_size, self.img_size, x.shape[1])
-        for c in xrange(0, x.shape[1], self.crop_chunk): # loop over cases in chunks
+        for c in range(0, x.shape[1], self.crop_chunk): # loop over cases in chunks
             c_end = min(c + self.crop_chunk, x.shape[1])
             pic = y[:,:,:, c:c_end]
             if nr.randint(2) == 0: # flip the images with 50% probability
@@ -311,7 +311,7 @@ class RandomScaleImageNetLogRegDP(CroppedImageNetLogRegDP):
 class DummyConvNetLogRegDP(LabeledDummyDataProvider):
     def __init__(self, data_dim):
         LabeledDummyDataProvider.__init__(self, data_dim)
-        self.batch_meta['tree'] = dict([(i, []) for i in xrange(self.num_classes)])
+        self.batch_meta['tree'] = dict([(i, []) for i in range(self.num_classes)])
         self.batch_meta['tree'][10] = [0, 1, 2]
         self.batch_meta['tree'][11] = [3, 4, 5]
         self.batch_meta['tree'][12] = [6, 7]

@@ -30,7 +30,8 @@
 #define _QUOTEME(x) #x
 #define QUOTEME(x) _QUOTEME(x)
 
-extern "C" void INITNAME();
+/* The module initialiser (PyInit__ConvNet on Python 3, init_ConvNet on
+ * Python 2) is defined in pyconvnet.cu; nothing else references it. */
 
 PyObject* initModel(PyObject *self, PyObject *args);
 PyObject* startBatch(PyObject *self, PyObject *args);

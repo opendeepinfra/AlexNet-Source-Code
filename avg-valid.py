@@ -11,9 +11,9 @@ VALID_PATH = '/storage/lsvrc-2012'
 
 def compute_top5(preds, labels):
     errs = 0
-    for c in xrange(preds.shape[0]):
+    for c in range(preds.shape[0]):
         err = True
-        for i in xrange(5):
+        for i in range(5):
             top = preds[c,:].argmax()
             if top == labels[c]:
                 err = False
@@ -47,17 +47,17 @@ def do_avg(paths, coeffs, top5=False):
     #print "Average error rate with coeffs %s: %.4f %.4f" % (", ".join("%.2f" % f for f in coeffs), errs1 / float(cases), errs5 / float(cases))
 
 def find_coeffs(paths, passes=5, cmin=0.0, cmax=1.0, step=0.05):
-    coeffs = [(cmax-cmin)/2 for i in xrange(len(paths))]
+    coeffs = [(cmax-cmin)/2 for i in range(len(paths))]
     #coeffs = [cmin + (r.random() * (cmax-cmin)) for i in xrange(len(paths))]
     best1 = do_avg(paths, coeffs, top5=True)[1]
     changed = -1
-    for p in xrange(passes):
-        print "Pass %d" % p
-        for i in xrange(len(coeffs)):
+    for p in range(passes):
+        print("Pass %d" % p)
+        for i in range(len(coeffs)):
             if changed == i:
                 changed = -2
                 break
-            for c in [cmin + c * step for c in xrange(1+int((cmax-cmin)/step))]:
+            for c in [cmin + c * step for c in range(1+int((cmax-cmin)/step))]:
                 oldc = coeffs[i]
                 coeffs[i] = c
                 err = do_avg(paths, coeffs, top5=True)[1]
@@ -66,20 +66,20 @@ def find_coeffs(paths, passes=5, cmin=0.0, cmax=1.0, step=0.05):
                     changed = i
                 else:
                     coeffs[i] = oldc
-            print "Best error rate: %.4f, coeffs: [%s]" % (best1, ",".join("%.2f" % f for f in coeffs))
+            print("Best error rate: %.4f, coeffs: [%s]" % (best1, ",".join("%.2f" % f for f in coeffs)))
         if changed == -2:
             break
             
 def find_coeffs2(paths, passes=50):
     #coeffs = n.array([r.random() for i in xrange(len(paths))])
-    coeffs = n.array([0.5 for i in xrange(len(paths))])
+    coeffs = n.array([0.5 for i in range(len(paths))])
     coeffs /= coeffs.sum()
     
     
     #crange = [[cmin + c * step for c in xrange(1+int((cmax-cmin)/step))] for i in xrange(len(paths))]
-    for p in xrange(passes):
-        print "Pass %d" % p
-        for i in nr.permutation(range(coeffs.shape[0])):
+    for p in range(passes):
+        print("Pass %d" % p)
+        for i in nr.permutation(list(range(coeffs.shape[0]))):
             #bigger = r.randint(0,2) == 0
             #c = coeffs[i] + r.random() * (1 - coeffs[i]) if bigger else r.random() * coeffs[i]
             c = min(1, max(0, coeffs[i] + nr.randn() / (2*sqrt(1+p))))
@@ -95,7 +95,7 @@ def find_coeffs2(paths, passes=50):
                 coeffs[i] = oldc
             coeffs /= coeffs.sum()
             #crange[i].remove(c)
-            print "Best error rate: %.4f, coeffs: [%s]%s" % (best1, ",".join("%.4f" % f for f in coeffs), changed)
+            print("Best error rate: %.4f, coeffs: [%s]%s" % (best1, ",".join("%.4f" % f for f in coeffs), changed))
 
 
 if __name__ == "__main__":
@@ -105,4 +105,4 @@ if __name__ == "__main__":
     else:
         coeffs = n.array([float(x) for x in sys.argv[2].split(',')])
         errs = do_avg(paths, coeffs, top5=True)
-        print "Average error rate with coeffs %s: %.4f %.4f" % (", ".join("%.2f" % f for f in coeffs), errs[0], errs[1])
+        print("Average error rate with coeffs %s: %.4f %.4f" % (", ".join("%.2f" % f for f in coeffs), errs[0], errs[1]))

@@ -11,7 +11,7 @@ def do_avg(paths, tgtpath, coeffs):
         dics = [unpickle(os.path.join(p, f)) for p in paths]
         preds = sum(c * d['data'] for c,d in zip(coeffs, dics))
         pickle(os.path.join(tgtpath, 'test_preds_%d' % b), {'data': preds})
-        print "Wrote batch %d" % b
+        print("Wrote batch %d" % b)
 
 if __name__ == "__main__":
     paths = sys.argv[1].split(',')

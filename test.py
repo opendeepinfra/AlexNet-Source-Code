@@ -27,6 +27,6 @@ def test(path):
     
 if __name__ == "__main__":
     errs, errs2, ncases = test(sys.argv[1])
-    print errs
-    print errs2
-    print "--- %d cases" % ncases
+    print(errs)
+    print(errs2)
+    print("--- %d cases" % ncases)

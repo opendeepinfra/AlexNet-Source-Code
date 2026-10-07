@@ -9,7 +9,7 @@ from math import sqrt
 import sys
 from pylab import *
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
 from convdata import ImageNetDP
     
 class JPEGBatchLoaderThread(Thread):
@@ -25,7 +25,8 @@ class JPEGBatchLoaderThread(Thread):
         #print "loading %d" % self.bnum
         
     @staticmethod
-    def load_jpeg_batch((strings, orig_sizes, labels), data_mean, no_crop, label_offset, tgt):
+    def load_jpeg_batch(xxx_todo_changeme, data_mean, no_crop, label_offset, tgt):
+        (strings, orig_sizes, labels) = xxx_todo_changeme
         lab_arr = n.zeros((len(strings), 1), dtype=n.single)
         failed = 0
         img256 = n.zeros((256, 256, 3), dtype=n.uint8) if no_crop else None
@@ -83,9 +84,9 @@ class JPEGCroppedImageNetDP(ImageNetDP):
         # I've never seen this happen but it's a safety measure.
         self.data = [None, None] # These are pointers to previously-returned data matrices
         # This is where I crop data into
-        self.cropped_data = [n.zeros((0*self.data_mult, self.get_data_dims()), dtype=n.float32) for x in xrange(2)] 
+        self.cropped_data = [n.zeros((0*self.data_mult, self.get_data_dims()), dtype=n.float32) for x in range(2)] 
         # This is where I load data into (jpeg --> uint8)
-        self.orig_data = [n.zeros((self.batch_size, self.img_size**2*3), dtype=n.uint8) for x in xrange(1 if test else 2)] 
+        self.orig_data = [n.zeros((self.batch_size, self.img_size**2*3), dtype=n.uint8) for x in range(1 if test else 2)] 
             
         self.loader_thread, self.color_noise_thread = None, None
         self.convnet = dp_params['convnet']
@@ -187,10 +188,10 @@ class JPEGCroppedImageNetDP(ImageNetDP):
             cropped -= cropped.min()
             cropped /= cropped.max()
             label = int(self.data[self.d_idx]['labels'][idx,0])
-            print label
-            print self.batch_meta['label_names'][label]
-            print cropped.max(), cropped.min()
-            print self.data[self.d_idx]['labels']
+            print(label)
+            print(self.batch_meta['label_names'][label])
+            print(cropped.max(), cropped.min())
+            print(self.data[self.d_idx]['labels'])
             self.showimg(cropped[idx,:])
         
         # NOTE: It would be good to add some logic here to pad irregularly-sized
@@ -227,7 +228,7 @@ class JPEGCroppedImageNetDP(ImageNetDP):
                                    (self.border_size, self.border_size),
                                   (self.border_size*2, 0), (self.border_size*2, self.border_size*2)]
                 end_positions = [(sy+self.inner_size, sx+self.inner_size) for (sy,sx) in start_positions]
-                for i in xrange(self.num_views/2):
+                for i in range(self.num_views/2):
                     pic = y[:,:,start_positions[i][0]:end_positions[i][0],start_positions[i][1]:end_positions[i][1]]
                     target[i * x.shape[0]:(i+1)* x.shape[0],:] = pic.reshape((x.shape[0], self.get_data_dims()))
                     target[(self.num_views/2 + i) * x.shape[0]:(self.num_views/2 +i+1)* x.shape[0],:] = pic[:,:,:,::-1].reshape((x.shape[0],self.get_data_dims()))
@@ -235,7 +236,7 @@ class JPEGCroppedImageNetDP(ImageNetDP):
                 pic = y[:,:,self.border_size:self.border_size+self.inner_size,self.border_size:self.border_size+self.inner_size] # just take the center for now
                 target[:,:] = pic.reshape((x.shape[0], self.get_data_dims()))
         else:
-            for c in xrange(0, x.shape[0], self.crop_chunk): # loop over cases in chunks
+            for c in range(0, x.shape[0], self.crop_chunk): # loop over cases in chunks
                 startY, startX = nr.randint(0,self.border_size*2 + 1), nr.randint(0,self.border_size*2 + 1)
 
                 endY, endX = startY + self.inner_size, startX + self.inner_size

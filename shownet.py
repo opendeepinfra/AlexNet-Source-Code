@@ -24,7 +24,7 @@ import gc
 try:
     import pylab as pl
 except:
-    print "This script requires the matplotlib python library (Ubuntu/Fedora package name python-matplotlib). Please install it."
+    print("This script requires the matplotlib python library (Ubuntu/Fedora package name python-matplotlib). Please install it.")
     sys.exit(1)
 
 class ShowNetError(Exception):
@@ -93,14 +93,14 @@ class ShowConvNet(ConvNet):
 
         numepochs = len(train_errors) / float(numbatches)
         pl.figure(1)
-        x = range(0, len(train_errors))
+        x = list(range(0, len(train_errors)))
         pl.plot(x, train_errors, 'k-', label='Training set')
         pl.plot(x, test_errors, 'r-', label='Test set')
         pl.legend()
-        ticklocs = range(numbatches, len(train_errors) - len(train_errors) % numbatches + 1, numbatches)
+        ticklocs = list(range(numbatches, len(train_errors) - len(train_errors) % numbatches + 1, numbatches))
         epoch_label_gran = int(ceil(numepochs / 20.)) # aim for about 20 labels
         epoch_label_gran = int(ceil(float(epoch_label_gran) / 10) * 10) # but round to nearest 10
-        ticklabels = map(lambda x: str((x[1] / numbatches)) if x[0] % epoch_label_gran == epoch_label_gran-1 else '', enumerate(ticklocs))
+        ticklabels = [str((x[1] / numbatches)) if x[0] % epoch_label_gran == epoch_label_gran-1 else '' for x in enumerate(ticklocs)]
 
         pl.xticks(ticklocs, ticklabels)
         pl.xlabel('Epoch')
@@ -125,11 +125,11 @@ class ShowConvNet(ConvNet):
         else:
             bigpic = n.zeros((3, filter_size * filter_rows + filter_rows + 1, filter_size * f_per_row + f_per_row + 1), dtype=n.single)
     
-        for m in xrange(filter_start,filter_end ):
+        for m in range(filter_start,filter_end ):
             filter = filters[:,:,m]
             y, x = (m - filter_start) / f_per_row, (m - filter_start) % f_per_row
             if not combine_chans:
-                for c in xrange(num_colors):
+                for c in range(num_colors):
                     filter_pic = filter[c,:].reshape((filter_size,filter_size))
                     bigpic[1 + (1 + filter_size) * y:1 + (1 + filter_size) * y + filter_size,
                            1 + (1 + filter_size*num_colors) * x + filter_size*c:1 + (1 + filter_size*num_colors) * x + filter_size*(c+1)] = filter_pic
@@ -233,8 +233,8 @@ class ShowConvNet(ConvNet):
         gs = gridspec.GridSpec(NUM_ROWS*2, NUM_COLS,
                                width_ratios=[1]*NUM_COLS, height_ratios=[2,1]*NUM_ROWS )
         #print data[1]
-        for row in xrange(NUM_ROWS):
-            for col in xrange(NUM_COLS):
+        for row in range(NUM_ROWS):
+            for col in range(NUM_COLS):
                 img_idx = row * NUM_COLS + col
                 if data[0].shape[0] <= img_idx:
                     break
@@ -254,14 +254,14 @@ class ShowConvNet(ConvNet):
                 #print img_labels
                 axes = pl.subplot(gs[(row * 2 + 1) * NUM_COLS + col])
                 height = 0.5
-                ylocs = n.array(range(NUM_TOP_CLASSES))*height
+                ylocs = n.array(list(range(NUM_TOP_CLASSES)))*height
                 pl.barh(ylocs, [l[0] for l in img_labels], height=height, \
                         color=['#ffaaaa' if l[1] in true_label_names else '#aaaaff' for l in img_labels])
                 #pl.title(", ".join(true_labels))
                 if show_title:
                     pl.title(", ".join(true_label_names), fontsize=15, fontweight='bold')
                 else:
-                    print true_label_names
+                    print(true_label_names)
                 pl.yticks(ylocs + height/2, [l[1] for l in img_labels], x=1, backgroundcolor=cconv.to_rgba('0.65', alpha=0.5), weight='bold')
                 for line in enumerate(axes.get_yticklines()): 
                     line[1].set_visible(False) 
@@ -300,7 +300,7 @@ class ShowConvNet(ConvNet):
 #            showimg(ftrs[1,:]); sys.exit(0)
 
             pickle(path_out, {'data': ftrs, 'labels': data[1]})
-            print "Wrote feature file %s" % path_out
+            print("Wrote feature file %s" % path_out)
             if next_data[1] == b1:
                 break
         pickle(os.path.join(self.feature_path, 'batches.meta'), {'source_model':self.load_file,
@@ -313,28 +313,28 @@ class ShowConvNet(ConvNet):
         next_data = self.get_next_batch(train=False)
         batch = next_data[1]
         data = next_data[2]
-        print data[0].shape
+        print(data[0].shape)
         num_cases = data[0].shape[1] / nv
-        print "num cases: %d" % num_cases
-        ftrs = [n.zeros((num_cases, num_classes), dtype=n.single) for i in xrange(2)]
-        for v in xrange(self.train_data_provider.num_views):
+        print("num cases: %d" % num_cases)
+        ftrs = [n.zeros((num_cases, num_classes), dtype=n.single) for i in range(2)]
+        for v in range(self.train_data_provider.num_views):
             vdata = [d[:,v*num_cases:(v+1)*num_cases] for d in data] + [ftrs[1]]
-            print [d.shape for d in vdata]
+            print([d.shape for d in vdata])
             self.libmodel.startFeatureWriter(vdata, self.ftr_layer_idx)
             self.finish_batch()
             ftrs[0] += ftrs[1]
         ftrs = ftrs[0]
-        print ftrs.max()
-        print "Batch %d top5 error: i dunno" % batch
-        print ftrs
+        print(ftrs.max())
+        print("Batch %d top5 error: i dunno" % batch)
+        print(ftrs)
         labels = data[1][:,:num_cases].astype(n.int32)
-        print labels, labels.shape
+        print(labels, labels.shape)
         v = 0
-        for m in xrange(5):
+        for m in range(5):
             maxlocs = ftrs.argmax(axis=1)
             v += (maxlocs == labels).sum()
             ftrs[n.arange(ftrs.shape[0]),maxlocs] = 0
-            print v
+            print(v)
             
     # NOTE: THIS ROUTINE APPLIES RELU NONLINAERITY TO MAPS
     # Change this if you're not actually using relu units
@@ -348,7 +348,7 @@ class ShowConvNet(ConvNet):
         data[1] = n.require(data[1][:,rand_idx], requirements='C')
         cases = data[0].shape[1]
         ldic = dict([(l['name'], l) for l in self.layers])
-        print ldic.keys()
+        print(list(ldic.keys()))
         num_ftrs = self.layers[self.map_layer_idx]['outputs']
         map_size = self.layers[self.map_layer_idx]['modulesX'] if 'modulesX' in self.layers[self.map_layer_idx] else self.layers[self.map_layer_idx]['outputsX']
         num_maps = num_ftrs / map_size**2
@@ -362,18 +362,18 @@ class ShowConvNet(ConvNet):
 
         data[0] = self.test_data_provider.get_plottable_data(data[0])
         # This map will have size (cases, num_maps, map_size, map_size)
-        print ftrs.shape
+        print(ftrs.shape)
         ftrs = ftrs.reshape(cases, num_maps, map_size, map_size)
-        print ftrs.min(), ftrs.max()
-        print ftrs.shape
+        print(ftrs.min(), ftrs.max())
+        print(ftrs.shape)
         ftrs[ftrs<0] = 0
         ftrs -= ftrs.min()
         ftrs /= ftrs.max()
-        rand_idx = nr.permutation(range(NUM_MAPS))[:ftrs.shape[1]]
+        rand_idx = nr.permutation(list(range(NUM_MAPS)))[:ftrs.shape[1]]
         ftrs = ftrs[:,rand_idx,:,:]
 #        ftrs = self.test_data_provider.get_plottable_data(ftrs.T, add_mean=False)
 
-        for i in xrange(NUM_IMGS):
+        for i in range(NUM_IMGS):
             pl.subplot(NUM_IMGS, NUM_MAPS + 1, i * (NUM_MAPS + 1) + 1)
             
             pl.xticks([])
@@ -381,7 +381,7 @@ class ShowConvNet(ConvNet):
             img = data[0][i,:,:,:]
             pl.imshow(img, interpolation='lanczos')
 #            return
-            for m in xrange(NUM_MAPS):
+            for m in range(NUM_MAPS):
                 pl.subplot(NUM_IMGS, NUM_MAPS + 1, i * (NUM_MAPS + 1) + m + 2)
                 pl.xticks([])
                 pl.yticks([])
@@ -407,7 +407,7 @@ class ShowConvNet(ConvNet):
         
         fig = pl.figure(4)
         fig.text(.4, .95, 'Data gradients')
-        print grads.shape, data[0].shape
+        print(grads.shape, data[0].shape)
         
         grads = self.test_data_provider.get_plottable_data(grads.T, add_mean=False)
 #        grads -= grads.min()
@@ -415,8 +415,8 @@ class ShowConvNet(ConvNet):
 #        grads[grads<0] = 0;
 #        grads[grads>0] = 0; grads = -grads;
         data[0] = self.test_data_provider.get_plottable_data(data[0])
-        for row in xrange(NUM_ROWS):
-            for col in xrange(NUM_COLS):
+        for row in range(NUM_ROWS):
+            for col in range(NUM_COLS):
                 img_idx = row * NUM_COLS + col
                 if data[0].shape[0] <= img_idx:
                     break
@@ -467,7 +467,7 @@ class ShowConvNet(ConvNet):
         
         images = n.zeros((self.test_data_provider.get_data_dims(), 32), dtype=n.single)
         labels = n.zeros((1, 32), dtype=n.single) # dummy
-        preds = [n.zeros((32, num_classes), dtype=n.single) for i in xrange(2)]
+        preds = [n.zeros((32, num_classes), dtype=n.single) for i in range(2)]
         preds_idx = 0
         while True:
             im = get_image()
@@ -497,7 +497,7 @@ class ShowConvNet(ConvNet):
                     p = preds[1 - preds_idx].mean(axis=0)
                     m = p.argmax()
 #                    m = Counter(preds[1 - preds_idx].argmax(axis=1)).most_common(1)[0][0]
-                    print "Label: %s (%.2f)" % (label_names[m] if p[m] > 0.0 else "<<none>>", p[m])
+                    print("Label: %s (%.2f)" % (label_names[m] if p[m] > 0.0 else "<<none>>", p[m]))
 #                    ent = -(n.log(p) * p).sum(axis=0)
 #                    print "Label: %s (entropy: %.2f)" % (label_names[m], ent)
 #                    print "Label: %s " % (label_names[m])
@@ -568,8 +568,8 @@ if __name__ == "__main__":
         op, load_dic = IGPUModel.parse_options(op)
         model = ShowConvNet(op, load_dic)
         model.start()
-    except (UnpickleError, ShowNetError, opt.GetoptError), e:
-        print "----------------"
-        print "Error:"
-        print e 
+    except (UnpickleError, ShowNetError, opt.GetoptError) as e:
+        print("----------------")
+        print("Error:")
+        print(e) 
 

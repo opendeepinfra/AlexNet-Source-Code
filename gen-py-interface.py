@@ -40,7 +40,7 @@ if __name__ == "__main__":
         pname = param[1].strip('*')
         pname = "py" + pname[0].upper() + pname[1:]
         if ptype not in pytype_mappings:
-            print "Unknown type: %s" % ptype
+            print("Unknown type: %s" % ptype)
             sys.exit(1)
         mapping = pytype_mappings[ptype]
         if mapping == "":
@@ -62,4 +62,4 @@ if __name__ == "__main__":
     template = template.replace("${ARG_STRING}", arg_string)   
     template = template.replace("${MODEL_START}", model_preamble + model_start)
 
-    print template
+    print(template)

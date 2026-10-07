@@ -10,7 +10,7 @@ def sumprod_brute(elts, size, fixed = -1):
         if size == 0:
             return 0
         z = 0
-        for s in xrange(size):
+        for s in range(size):
             z += sumprod_brute(elts[:fixed], s) * sumprod_brute(elts[fixed+1:], size - 1 - s)
         return z * exp(elts[fixed])
     if size == 0:
@@ -28,9 +28,9 @@ def sumprod(elts, size, fixed = -1):
 
     logBNorms = np.zeros(N + 1)
     # Backward pass
-    for i in xrange(N - 1, -1, -1):
+    for i in range(N - 1, -1, -1):
         B[0, i] = (i >= size and i > fixed) * B[0, i + 1] # This can get quite small
-        for s in xrange(max(1, size - i), size + 1):
+        for s in range(max(1, size - i), size + 1):
             B[s, i] = B[s - 1, i + 1] * exp(elts[i]) + B[s, i + 1] * (fixed != i)
         norm = B[:,i].sum()
         B[:,i] /= norm
@@ -43,8 +43,8 @@ def sumprod(elts, size, fixed = -1):
     # Compute y_j for each j (marginal prob)
     y = np.zeros(N)
     logFNorm = -logBNorms[0] # Subtract log partition function 
-    for i in xrange(1, N + 1):
-        for s in xrange(size, -1, -1):
+    for i in range(1, N + 1):
+        for s in range(size, -1, -1):
             if s < size:
                 y[i - 1] += F[s] * B[size - 1 - s, i]
             if s > 0:
@@ -80,8 +80,8 @@ def sumprod_logspace(elts, size, fixed = -1):
         logB[0, :fixed + 1] = -np.inf
 
     # Backward pass
-    for i in xrange(N - 1, -1, -1):
-        for s in xrange(max(1, size - i), size + 1):
+    for i in range(N - 1, -1, -1):
+        for s in range(max(1, size - i), size + 1):
             logB[s, i] = logadd(logB[s - 1, i + 1] + elts[i], logB[s, i + 1] if fixed != i else -np.inf)
 
     logF = -np.inf * np.ones((size + 1,)) # Forward column
@@ -91,8 +91,8 @@ def sumprod_logspace(elts, size, fixed = -1):
     # Compute y_j for each j (marginal prob)
     logy = -np.inf * np.ones(N)
     logFNorm = -logB[size, 0] # Subtract log partition function 
-    for i in xrange(1, N + 1):
-        for s in xrange(size, -1, -1):
+    for i in range(1, N + 1):
+        for s in range(size, -1, -1):
             if s < size:
                 logy[i - 1] = logadd(logy[i - 1], logF[s] + logB[size - 1 - s, i])
             if s > 0:
@@ -113,18 +113,18 @@ def check_grad(elts, size, correct=0):
     Cy = sumprod_logspace(elts, size, fixed=correct)
     
     grad = Cy - y
-    print "Analytic gradient: "
-    print grad
+    print("Analytic gradient: ")
+    print(grad)
     
     grad_num = np.zeros_like(grad)
-    for i in xrange(N):
+    for i in range(N):
         tmp = elts[i]
         elts[i] += eps
         y_n = sumprod_logspace(elts, size)
         grad_num[i] = (log(y_n[correct]) - log(y[correct])) / eps
         elts[i] = tmp
-    print "Numeric gradient: "
-    print grad_num
+    print("Numeric gradient: ")
+    print(grad_num)
     
 if __name__ == "__main__":
     nr.seed(2)
@@ -134,22 +134,22 @@ if __name__ == "__main__":
     elts = nr.randn(N)
     elts -= elts.max()
     elts = np.array([-0.071459650993347, -0.517264485359192, -0.128548145294189, -0.113207340240479 ,0.000000000000000])
-    print elts
+    print(elts)
     
     dp_y = sumprod_logspace(elts, size, fixed=fixed)
     bf_Z = sumprod_brute(elts, size, fixed=fixed)
-    print "Brute force Z: %f" % bf_Z
+    print("Brute force Z: %f" % bf_Z)
     
-    print "Brute force z/Z:"
+    print("Brute force z/Z:")
     bf_z = np.zeros(N)
-    for i in xrange(N):
-        for s in xrange(size):
+    for i in range(N):
+        for s in range(size):
             bf_z[i] += sumprod_brute(elts[:i], s, fixed=fixed) * sumprod_brute(elts[i+1:], size - 1 - s, fixed=fixed-i-1)
         bf_z[i] *= exp(elts[i])
 
-    print bf_z / bf_Z
+    print(bf_z / bf_Z)
     
-    print "DP z/Z:"
-    print dp_y
+    print("DP z/Z:")
+    print(dp_y)
     
     check_grad(elts, size, correct=3)

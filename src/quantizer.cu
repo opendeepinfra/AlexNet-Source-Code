@@ -1,6 +1,61 @@
 #include <quantizer.cuh>
+#include <cutil_inline.h>
+#include <cuda_fp16.h>
 
 using namespace std;
+
+/* ---------------------------------------------------------------------------
+ * Half-precision quantization helpers.
+ *
+ * convQuantizeHalf() / convDequantizeHalf() live in the private "cudaconv2"
+ * library of the original 2012 tree and are absent from the public
+ * cuda-convnet drop, so they are reimplemented here.  They are used by
+ * HalfQuantizer to move activations/gradients between devices as 16-bit
+ * values (half the PCIe traffic).
+ *
+ * Semantics match Quantizer's float path:
+ *   quantize   : tgt[i] = (half) src[i]
+ *   dequantize : tgt[i] = scaleTarget * tgt[i] + scaleOutput * (float) src[i]
+ * ------------------------------------------------------------------------- */
+static const int HALF_QUANT_BLOCK = 512;
+
+__global__ void kQuantizeHalf(const float *src, __half *tgt, int numEls) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < numEls) {
+        tgt[i] = __float2half_rn(src[i]);
+    }
+}
+
+__global__ void kDequantizeHalf(const __half *src, float *tgt, int numEls,
+                                float scaleTarget, float scaleOutput) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < numEls) {
+        tgt[i] = scaleTarget * tgt[i] + scaleOutput * __half2float(src[i]);
+    }
+}
+
+void convQuantizeHalf(NVMatrix &src, NVMatrix &tgt) {
+    int numEls = (int) src.getNumElements();
+    if (numEls <= 0) {
+        return;
+    }
+    int blocks = (numEls + HALF_QUANT_BLOCK - 1) / HALF_QUANT_BLOCK;
+    kQuantizeHalf<<<blocks, HALF_QUANT_BLOCK>>>(
+        (const float *) src.getDevData(), (__half *) tgt.getDevData(), numEls);
+    cutilCheckMsg("convQuantizeHalf failed");
+}
+
+void convDequantizeHalf(NVMatrix &src, NVMatrix &tgt, int numEls,
+                        float scaleTarget, float scaleOutput) {
+    if (numEls <= 0) {
+        return;
+    }
+    int blocks = (numEls + HALF_QUANT_BLOCK - 1) / HALF_QUANT_BLOCK;
+    kDequantizeHalf<<<blocks, HALF_QUANT_BLOCK>>>(
+        (const __half *) src.getDevData(), tgt.getDevData(), numEls,
+        scaleTarget, scaleOutput);
+    cutilCheckMsg("convDequantizeHalf failed");
+}
 
 /*=================
  * Quantizer

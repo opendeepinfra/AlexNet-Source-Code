@@ -1,6 +1,6 @@
 from math import exp
 import sys
-import ConfigParser as cfg
+import configparser as cfg
 import os
 import numpy as n
 import numpy.random as nr
@@ -46,7 +46,7 @@ class ParamNeuronParser(NeuronParser):
                 param_vals = [float(v.strip()) for v in m.group(1).split(',')]
                 if len(param_vals) == len(self.param_names):
                     return {'type': self.base_type,
-                            'params': dict(zip(self.param_names, param_vals)),
+                            'params': dict(list(zip(self.param_names, param_vals))),
                             'usesActs': self.uses_acts,
                             'usesInputs': self.uses_inputs}
             except TypeError:
@@ -86,7 +86,7 @@ class ParamParser:
                 param_vals = [ptype(v.split('=')[1].strip()) for ptype,v in zip(self.param_types, m.group(1).split(','))] if m.group(1) is not None else []
                 if len(param_vals) == len(self.param_names):
                     return {'type': self.base_type,
-                            'params': dict(zip(self.param_names, param_vals))}
+                            'params': dict(list(zip(self.param_names, param_vals)))}
             except TypeError:
                 pass
         return None
@@ -96,11 +96,11 @@ class MyConfigParser(cfg.SafeConfigParser):
     def safe_get(self, section, option, f=cfg.SafeConfigParser.get, typestr=None, default=None):
         try:
             return f(self, section, option)
-        except cfg.NoOptionError, e:
+        except cfg.NoOptionError as e:
             if default is not None:
                 return default
             raise LayerParsingError("Layer '%s': required parameter '%s' missing" % (section, option))
-        except ValueError, e:
+        except ValueError as e:
             if typestr is None:
                 raise e
             raise LayerParsingError("Layer '%s': parameter '%s' must be %s" % (section, option, typestr))
@@ -270,7 +270,7 @@ class LayerParser:
     # separate layer definitions for them.
     @staticmethod
     def detach_neuron_layers(layers):
-        for name,l in layers.items():
+        for name,l in list(layers.items()):
             if l['type'] != 'neuron' and 'neuron' in l and l['neuron']:
                 NeuronLayerParser().detach_neuron_layer(name, layers)
                 
@@ -293,28 +293,28 @@ class LayerParser:
                     layers[name] = layer_parsers[ltype]().parse(name, mcp, layers, model)
                 
                 LayerParser.detach_neuron_layers(layers)
-                for l in layers.values():
+                for l in list(layers.values()):
                     lp = layer_parsers[l['type']]()
                     l['parser'].optimize(layers)
                     del l['parser']
                     
-                for name,l in layers.items():
+                for name,l in list(layers.items()):
                     if not l['type'].startswith('cost.'):
-                        found = max(name in l2['inputs'] for l2 in layers.values() if 'inputs' in l2)
+                        found = max(name in l2['inputs'] for l2 in list(layers.values()) if 'inputs' in l2)
                         if not found:
                             raise LayerParsingError("Layer '%s' of type '%s' is unused" % (name, l['type']))
             
             mcp = MyConfigParser(dict_type=OrderedDict)
             mcp.read([param_cfg_path])
             
-            for name,l in layers.items():
+            for name,l in list(layers.items()):
                 if not mcp.has_section(name) and l['requiresParams']:
                     raise LayerParsingError("Layer '%s' of type '%s' requires extra parameters, but none given in file '%s'." % (name, l['type'], param_cfg_path))
                 lp = layer_parsers[l['type']]().init(l)
                 lp.add_params(mcp)
                 lp.dic['conserveMem'] = model.op.get_value('conserve_mem')
-        except LayerParsingError, e:
-            print e
+        except LayerParsingError as e:
+            print(e)
             sys.exit(1)
         return layers
         
@@ -379,7 +379,7 @@ class LayerWithInputParser(LayerParser):
 #        if dic['gpu'] < 0:
 #            print dic['inputLayers'][0]['name'], dic['inputLayers'][0]['gpu']
         if model:
-            self.verify_int_in(dic['gpu'], 'gpu', range(0, model.op.get_value('num_gpus')))
+            self.verify_int_in(dic['gpu'], 'gpu', list(range(0, model.op.get_value('num_gpus'))))
 #        input_layers = [prev_layers[i] for i in dic['inputs']]
 #        dic['gradConsumer'] = any(l['gradConsumer'] for l in dic['inputLayers'])
 #        dic['usesActs'] = dic['gradConsumer'] # A conservative setting by default for layers with input
@@ -427,7 +427,7 @@ class NailbedLayerParser(LayerWithInputParser):
         
         self.verify_img_size()
         
-        print "Initialized bed-of-nails layer '%s' on GPU %d, producing %dx%d %d-channel output" % (name, dic['gpu'], dic['outputsX'], dic['outputsX'], dic['channels'])
+        print("Initialized bed-of-nails layer '%s' on GPU %d, producing %dx%d %d-channel output" % (name, dic['gpu'], dic['outputsX'], dic['outputsX'], dic['channels']))
         return dic
     
 class GaussianBlurLayerParser(LayerWithInputParser):
@@ -452,14 +452,14 @@ class GaussianBlurLayerParser(LayerWithInputParser):
         dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         dic['filter'] = n.array([exp(-(dic['filterSize']/2 - i)**2 / float(2 * dic['stdev']**2)) 
-                                 for i in xrange(dic['filterSize'])], dtype=n.float32).reshape(1, dic['filterSize'])
+                                 for i in range(dic['filterSize'])], dtype=n.float32).reshape(1, dic['filterSize'])
         dic['filter'] /= dic['filter'].sum()
         self.verify_img_size()
         
         if dic['filterSize'] > dic['imgSize']:
             raise LayerParsingError("Later '%s': filter size (%d) must be smaller than image size (%d)." % (dic['name'], dic['filterSize'], dic['imgSize']))
         
-        print "Initialized Gaussian blur layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels'])
+        print("Initialized Gaussian blur layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels']))
         
         return dic
     
@@ -479,7 +479,7 @@ class HorizontalReflectionLayerParser(LayerWithInputParser):
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         self.verify_img_size()
         
-        print "Initialized horizontal reflection layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels'])
+        print("Initialized horizontal reflection layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels']))
         
         return dic
     
@@ -509,7 +509,7 @@ class ResizeLayerParser(LayerWithInputParser):
         self.verify_img_size()
         self.verify_no_grads()
         
-        print "Initialized resize layer '%s', producing %dx%d %d-channel output" % (name, dic['tgtSize'], dic['tgtSize'], dic['channels'])
+        print("Initialized resize layer '%s', producing %dx%d %d-channel output" % (name, dic['tgtSize'], dic['tgtSize'], dic['channels']))
         
         return dic
     
@@ -547,7 +547,7 @@ class RandomScaleLayerParser(LayerWithInputParser):
         self.verify_img_size()
         self.verify_no_grads()
         
-        print "Initialized random scale layer '%s', producing %dx%d %d-channel output" % (name, dic['tgtSize'], dic['tgtSize'], dic['channels'])
+        print("Initialized random scale layer '%s', producing %dx%d %d-channel output" % (name, dic['tgtSize'], dic['tgtSize'], dic['channels']))
         
         return dic
     
@@ -578,7 +578,7 @@ class RGBToYUVLayerParser(ColorTransformLayerParser):
         
     def parse(self, name, mcp, prev_layers, model=None):
         dic = ColorTransformLayerParser.parse(self, name, mcp, prev_layers, model)
-        print "Initialized RGB --> YUV layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels'])
+        print("Initialized RGB --> YUV layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels']))
         return dic
     
 class RGBToLABLayerParser(ColorTransformLayerParser):
@@ -588,7 +588,7 @@ class RGBToLABLayerParser(ColorTransformLayerParser):
     def parse(self, name, mcp, prev_layers, model=None):
         dic = ColorTransformLayerParser.parse(self, name, mcp, prev_layers, model)
         dic['center'] = mcp.safe_get_bool(name, 'center', default=False)
-        print "Initialized RGB --> LAB layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels'])
+        print("Initialized RGB --> LAB layer '%s', producing %dx%d %d-channel output" % (name, dic['imgSize'], dic['imgSize'], dic['channels']))
         return dic
 
 class NeuronLayerParser(LayerWithInputParser):
@@ -599,7 +599,7 @@ class NeuronLayerParser(LayerWithInputParser):
     def get_unused_layer_name(layers, wish):
         if wish not in layers:
             return wish
-        for i in xrange(1, 100):
+        for i in range(1, 100):
             name = '%s.%d' % (wish, i)
             if name not in layers:
                 return name
@@ -638,7 +638,7 @@ class NeuronLayerParser(LayerWithInputParser):
         dic['src_layer'] = src_name
         
         # Link upper layers to this new one
-        for l in layers.values():
+        for l in list(layers.values()):
             if 'inputs' in l:
                 l['inputs'] = [inp if inp != src_name else dic['name'] for inp in l['inputs']]
                 l['inputLayers'] = [inp if inp['name'] != src_name else dic for inp in l['inputLayers']]
@@ -649,7 +649,7 @@ class NeuronLayerParser(LayerWithInputParser):
         dic['outputs'] = dic['numInputs'][0]
         self.parse_neuron(dic['neuron'])
         dic['forceOwnActs'] = False
-        print "Initialized neuron layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized neuron layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
 
 class EltwiseSumLayerParser(LayerWithInputParser):
@@ -668,7 +668,7 @@ class EltwiseSumLayerParser(LayerWithInputParser):
         
         dic['coeffs'] = mcp.safe_get_float_list(name, 'coeffs', default=[1.0] * len(dic['inputs']))
         
-        print "Initialized elementwise sum layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized elementwise sum layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
     
 class EltwiseMaxLayerParser(LayerWithInputParser):
@@ -683,7 +683,7 @@ class EltwiseMaxLayerParser(LayerWithInputParser):
             raise LayerParsingError("Layer '%s': all inputs must have the same dimensionality. Got dimensionalities: %s" % (name, ", ".join(str(s) for s in dic['numInputs'])))
         dic['outputs'] = dic['numInputs'][0]
 
-        print "Initialized elementwise max layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized elementwise max layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
     
 class HiddenSexLayerParser(LayerWithInputParser):
@@ -705,7 +705,7 @@ class HiddenSexLayerParser(LayerWithInputParser):
         dic['outputs'] = dic['numInputs'][0]
         dic['keep'] = mcp.safe_get_float(name, 'keep')
 
-        print "Initialized hidden sex layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized hidden sex layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
 
 class WeightLayerParser(LayerWithInputParser):
@@ -753,11 +753,11 @@ class WeightLayerParser(LayerWithInputParser):
                     layer['weightSourceMatrixIndices'][i] = -1
                     layer['weights'][i] = layer['weights'][i].copy()
                     layer['weightsInc'][i] = n.zeros_like(layer['weights'][i])
-                    print "Unshared weight matrix %s[%d] from %s[%d]." % (layer['name'], i, layer['weightSourceLayers'][i], src_matrix_idx)
+                    print("Unshared weight matrix %s[%d] from %s[%d]." % (layer['name'], i, layer['weightSourceLayers'][i], src_matrix_idx))
                 else:
-                    print "Weight matrix %s[%d] already unshared." % (layer['name'], i)
+                    print("Weight matrix %s[%d] already unshared." % (layer['name'], i))
         if 'weightSourceLayers' in layer:
-            unshare(layer, layers, range(len(layer['inputs'])) if matrix_idx is None else [matrix_idx])
+            unshare(layer, layers, list(range(len(layer['inputs']))) if matrix_idx is None else [matrix_idx])
 
     # Load weight/biases initialization module
     def call_init_func(self, param_name, shapes, input_idx=-1):
@@ -771,7 +771,7 @@ class WeightLayerParser(LayerWithInputParser):
         try:
             mod = __import__(module)
             return getattr(mod, func)(dic['name'], input_idx, shapes, params=params) if input_idx >= 0 else getattr(mod, func)(dic['name'], shapes, params=params)
-        except (ImportError, AttributeError, TypeError), e:
+        except (ImportError, AttributeError, TypeError) as e:
             raise LayerParsingError("Layer '%s': %s." % (dic['name'], e))
         
     def make_weights(self, initW, rows, cols, order='C'):
@@ -780,7 +780,7 @@ class WeightLayerParser(LayerWithInputParser):
         if dic['initWFunc']: # Initialize weights from user-supplied python function
             # Initialization function is supplied in the format
             # module.func
-            for i in xrange(len(dic['inputs'])):
+            for i in range(len(dic['inputs'])):
                 dic['weights'] += [self.call_init_func('initWFunc', (rows[i], cols[i]), input_idx=i)]
 
                 if type(dic['weights'][i]) != n.ndarray:
@@ -792,9 +792,9 @@ class WeightLayerParser(LayerWithInputParser):
                 # Convert to desired order
                 dic['weights'][i] = n.require(dic['weights'][i], requirements=order)
                 dic['weightsInc'] += [n.zeros_like(dic['weights'][i])]
-                print "Layer '%s[%d]' initialized weight matrices from function %s" % (dic['name'], i, dic['initWFunc'])
+                print("Layer '%s[%d]' initialized weight matrices from function %s" % (dic['name'], i, dic['initWFunc']))
         else:
-            for i in xrange(len(dic['inputs'])):
+            for i in range(len(dic['inputs'])):
                 if dic['weightSourceLayers'][i] != '': # Shared weight matrix
                     src_layer = self.prev_layers[dic['weightSourceLayers'][i]] if dic['weightSourceLayers'][i] != dic['name'] else dic
                     dic['weights'] += [src_layer['weights'][dic['weightSourceMatrixIndices'][i]]]
@@ -802,7 +802,7 @@ class WeightLayerParser(LayerWithInputParser):
                     if dic['weights'][i].shape != (rows[i], cols[i]):
                         raise LayerParsingError("Layer '%s': weight sharing source matrix '%s' has shape %dx%d; should be %dx%d." 
                                                 % (dic['name'], dic['weightSource'][i], dic['weights'][i].shape[0], dic['weights'][i].shape[1], rows[i], cols[i]))
-                    print "Layer '%s' initialized weight matrix %d from %s" % (dic['name'], i, dic['weightSource'][i])
+                    print("Layer '%s' initialized weight matrix %d from %s" % (dic['name'], i, dic['weightSource'][i]))
                 else:
                     dic['weights'] += [n.array(initW[i] * nr.randn(rows[i], cols[i]), dtype=n.single, order=order)]
                     dic['weightsInc'] += [n.zeros_like(dic['weights'][i])]
@@ -819,7 +819,7 @@ class WeightLayerParser(LayerWithInputParser):
                 raise LayerParsingError("Layer '%s': bias vector returned by bias initialization function %s has wrong shape. Should be: %s; got: %s." % (dic['name'], dic['initBFunc'], (rows, cols), dic['biases'].shape))
 
             dic['biases'] = n.require(dic['biases'], requirements=order)
-            print "Layer '%s' initialized bias vector from function %s" % (dic['name'], dic['initBFunc'])
+            print("Layer '%s' initialized bias vector from function %s" % (dic['name'], dic['initBFunc']))
         else:
             dic['biases'] = dic['initB'] * n.ones((rows, cols), order=order, dtype=n.single)
         dic['biasesInc'] = n.zeros_like(dic['biases'])
@@ -882,7 +882,7 @@ class FCLayerParser(WeightLayerParser):
         self.verify_num_range(dic['outputs'], 'outputs', 1, None)
         self.make_weights(dic['initW'], dic['numInputs'], [dic['outputs']] * len(dic['numInputs']), order='F')
         self.make_biases(1, dic['outputs'], order='F')
-        print "Initialized fully-connected layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized fully-connected layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
     
 class TreeFCLayerParser(WeightLayerParser):
@@ -893,7 +893,7 @@ class TreeFCLayerParser(WeightLayerParser):
         dic = WeightLayerParser.parse(self, name, mcp, prev_layers, model)
         meta = model.train_data_provider.batch_meta
         num_classes = model.train_data_provider.get_num_classes()
-        dic['tree'] = [meta['tree'][i] for i in xrange(len(meta['tree']))]
+        dic['tree'] = [meta['tree'][i] for i in range(len(meta['tree']))]
         dic['rootLabel'] = meta['all_wnids']['gproot']
         if len(set(dic['weightSourceLayers'])) > 1 or dic['weightSourceLayers'][0] != '':
             raise LayerParsingError("Layer '%s': weight sharing not allowed in tree-fc layers." % (name))
@@ -904,7 +904,7 @@ class TreeFCLayerParser(WeightLayerParser):
         dic['weights'][0][:,num_classes:] = 0 # Zero out non-leaf weight vectors
         self.make_biases(1, dic['outputs'], order='F')
         
-        print "Initialized tree-fc layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized tree-fc layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
 
 class LocalLayerParser(WeightLayerParser):
@@ -917,7 +917,7 @@ class LocalLayerParser(WeightLayerParser):
         layer = layers[idx]
         if layer['type'] == 'conv':
             layer['type'] = 'local'
-            for inp in xrange(len(layer['inputs'])):
+            for inp in range(len(layer['inputs'])):
                 src_layer_name = layer['weightSourceLayers'][inp]
                 if src_layer_name != '':
                     src_layer_idx = [l['name'] for l in layers].index(src_layer_name)
@@ -935,7 +935,7 @@ class LocalLayerParser(WeightLayerParser):
                 layer['biases'] = n.require(n.repeat(layer['biases'], layer['modules'], axis=0), requirements='C')
                 layer['biasesInc'] = n.zeros_like(layer['biases'])
             
-            print "Converted layer '%s' from convolutional to unshared, locally-connected" % layer['name']
+            print("Converted layer '%s' from convolutional to unshared, locally-connected" % layer['name'])
             
             # Also call this function on any layers sharing my weights
             for i, l in enumerate(layers):
@@ -948,16 +948,16 @@ class LocalLayerParser(WeightLayerParser):
     def gen_rand_conns(self, groups, channels, filterChannels, inputIdx):
         dic = self.dic
         overSample = groups * filterChannels / channels
-        filterConns = [x for i in xrange(overSample) for x in nr.permutation(range(channels))]
+        filterConns = [x for i in range(overSample) for x in nr.permutation(list(range(channels)))]
         
         if dic['initCFunc']: # Initialize connectivity from outside source
             filterConns = self.call_init_func('initCFunc', (groups, channels, filterChannels), input_idx=inputIdx)
             if len(filterConns) != overSample * channels:
                 raise LayerParsingError("Layer '%s[%d]': random connectivity initialization function %s must return list of length <groups> * <filterChannels> = %d; got: %d" % (dic['name'], inputIdx, dic['initCFunc'], len(filterConns)))
-            if any(c not in range(channels) for c in filterConns):
+            if any(c not in list(range(channels)) for c in filterConns):
                 raise LayerParsingError("Layer '%s[%d]': random connectivity initialization function %s must return list of channel indices in the range 0-<channels-1> = 0-%d." % (dic['name'], inputIdx, dic['initCFunc'], channels-1))
             # Every "channels" sub-slice should be a permutation of range(channels)
-            if any(len(set(c)) != len(c) for c in [filterConns[o*channels:(o+1)*channels] for o in xrange(overSample)]):
+            if any(len(set(c)) != len(c) for c in [filterConns[o*channels:(o+1)*channels] for o in range(overSample)]):
                 raise LayerParsingError("Layer '%s[%d]': random connectivity initialization function %s must return list of channel indices such that every non-overlapping sub-list of <channels> = %d elements is a permutation of the integers 0-<channels-1> = 0-%d." % (dic['name'], inputIdx, dic['initCFunc'], channels, channels-1))
 
         elif dic['weightSourceLayers'][inputIdx] != '': # Shared weight matrix
@@ -1016,7 +1016,7 @@ class LocalLayerParser(WeightLayerParser):
         dic['filters'] = dic['filters'][0]
         dic['outputs'] = dic['modules'] * dic['filters']
         dic['filterConns'] = [[]] * len(dic['inputs'])
-        for i in xrange(len(dic['inputs'])):
+        for i in range(len(dic['inputs'])):
             if dic['numInputs'][i] % dic['imgPixels'][i] != 0 or dic['imgSize'][i] * dic['imgSize'][i] != dic['imgPixels'][i]:
                 raise LayerParsingError("Layer '%s[%d]': has %-d dimensional input, not interpretable as square %d-channel images" % (name, i, dic['numInputs'][i], dic['channels'][i]))
             if dic['channels'][i] > 3 and dic['channels'][i] % 4 != 0:
@@ -1072,7 +1072,7 @@ class ConvLayerParser(LocalLayerParser):
         self.make_weights(dic['initW'], eltmult(dic['filterPixels'], dic['filterChannels']), [dic['filters']] * len(dic['inputs']), order='C')
         self.make_biases(num_biases, 1, order='C')
 
-        print "Initialized convolutional layer '%s' on GPU %d, producing %dx%d %d-channel output" % (name, dic['gpu'], dic['modulesX'], dic['modulesX'], dic['filters'])
+        print("Initialized convolutional layer '%s' on GPU %d, producing %dx%d %d-channel output" % (name, dic['gpu'], dic['modulesX'], dic['modulesX'], dic['filters']))
         return dic    
     
 class LocalUnsharedLayerParser(LocalLayerParser):
@@ -1086,7 +1086,7 @@ class LocalUnsharedLayerParser(LocalLayerParser):
         self.make_weights(dic['initW'], scmult(dic['modules'], eltmult(dic['filterPixels'], dic['filterChannels'])), [dic['filters']] * len(dic['inputs']), order='C')
         self.make_biases(dic['modules'] * dic['filters'], 1, order='C')
         
-        print "Initialized locally-connected layer '%s' on GPU %d, producing %dx%d %d-channel output" % (name, dic['gpu'], dic['modulesX'], dic['modulesX'], dic['filters'])
+        print("Initialized locally-connected layer '%s' on GPU %d, producing %dx%d %d-channel output" % (name, dic['gpu'], dic['modulesX'], dic['modulesX'], dic['filters']))
         return dic  
     
 class DataLayerParser(LayerParser):
@@ -1098,7 +1098,7 @@ class DataLayerParser(LayerParser):
         dic['dataIdx'] = mcp.safe_get_int(name, 'dataIdx')
         dic['outputs'] = model.train_data_provider.get_data_dims(idx=dic['dataIdx'])
         
-        print "Initialized data layer '%s', producing %d outputs" % (name, dic['outputs'])
+        print("Initialized data layer '%s', producing %d outputs" % (name, dic['outputs']))
         return dic
 
 class SoftmaxLayerParser(LayerWithInputParser):
@@ -1108,7 +1108,7 @@ class SoftmaxLayerParser(LayerWithInputParser):
     def parse(self, name, mcp, prev_layers, model):
         dic = LayerWithInputParser.parse(self, name, mcp, prev_layers, model)
         dic['outputs'] = dic['inputLayers'][0]['outputs']
-        print "Initialized softmax layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        print("Initialized softmax layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
     
 class ConcatentionLayerParser(LayerWithInputParser):
@@ -1118,8 +1118,8 @@ class ConcatentionLayerParser(LayerWithInputParser):
     def parse(self, name, mcp, prev_layers, model):
         dic = LayerWithInputParser.parse(self, name, mcp, prev_layers, model)
         dic['outputs'] = sum(l['outputs'] for l in dic['inputLayers'])
-        dic['copyOffsets'] = [sum(dic['inputLayers'][j]['outputs'] for j in xrange(i)) for i in xrange(len(dic['inputLayers']))]
-        print "Initialized concatenation layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs'])
+        dic['copyOffsets'] = [sum(dic['inputLayers'][j]['outputs'] for j in range(i)) for i in range(len(dic['inputLayers']))]
+        print("Initialized concatenation layer '%s' on GPU %d, producing %d outputs" % (name, dic['gpu'], dic['outputs']))
         return dic
 
 class PoolLayerParser(LayerWithInputParser):
@@ -1164,7 +1164,7 @@ class PoolLayerParser(LayerWithInputParser):
             dic['outputsX'] = int(ceil((dic['imgSize'] - dic['start'] - dic['sizeX']) / float(dic['stride']))) + 1;
         dic['outputs'] = dic['outputsX']**2 * dic['channels']
         
-        print "Initialized %s-pooling layer '%s' on GPU %d, producing %dx%d %d-channel output" % (dic['pool'], name, dic['gpu'], dic['outputsX'], dic['outputsX'], dic['channels'])
+        print("Initialized %s-pooling layer '%s' on GPU %d, producing %dx%d %d-channel output" % (dic['pool'], name, dic['gpu'], dic['outputsX'], dic['outputsX'], dic['channels']))
         return dic
     
 class NormLayerParser(LayerWithInputParser):
@@ -1212,7 +1212,7 @@ class NormLayerParser(LayerWithInputParser):
         self.verify_img_size()
 
         dic['outputs'] = dic['imgPixels'] * dic['channels']
-        print "Initialized %s-normalization layer '%s' on GPU %d, producing %dx%d %d-channel output" % (self.norm_type, name, dic['gpu'], dic['imgSize'], dic['imgSize'], dic['channels'])
+        print("Initialized %s-normalization layer '%s' on GPU %d, producing %dx%d %d-channel output" % (self.norm_type, name, dic['gpu'], dic['imgSize'], dic['imgSize'], dic['channels']))
         return dic
 
 class CostParser(LayerWithInputParser):
@@ -1244,7 +1244,7 @@ class CrossEntCostParser(CostParser):
             raise LayerParsingError("Layer '%s': Softmax input '%s' must produce %d outputs, because that is the number of classes in the dataset" \
                                     % (name, dic['inputs'][1], model.train_data_provider.get_num_classes()))
         
-        print "Initialized cross-entropy cost '%s' on GPU %d" % (name, dic['gpu'])
+        print("Initialized cross-entropy cost '%s' on GPU %d" % (name, dic['gpu']))
         return dic
     
 class LogregCostParser(CostParser):
@@ -1267,7 +1267,7 @@ class LogregCostParser(CostParser):
             raise LayerParsingError("Layer '%s': softmax input '%s' must produce %d outputs, because that is the number of classes in the dataset" \
                                     % (name, dic['inputs'][1], model.train_data_provider.get_num_classes()))
         
-        print "Initialized logistic regression cost '%s' on GPU %d" % (name, dic['gpu'])
+        print("Initialized logistic regression cost '%s' on GPU %d" % (name, dic['gpu']))
         return dic
     
 class FlickrBaseCost(CostParser):
@@ -1277,13 +1277,13 @@ class FlickrBaseCost(CostParser):
         
     def parse(self, name, mcp, prev_layers, model):
         dic = CostParser.parse(self, name, mcp, prev_layers, model)
-        for i in xrange(2):
+        for i in range(2):
             if dic['numInputs'][i] != model.train_data_provider.get_num_classes():
                 raise LayerParsingError("Layer '%s': input '%s' must produce %d outputs, because that is the number of classes in the dataset" \
                                         % (name, dic['inputs'][i], model.train_data_provider.get_num_classes()))
         if 'neuron' not in dic['inputLayers'][1] or dic['inputLayers'][1]['neuron'] != 'logistic':
-            print "WARNING: Layer '%s': input '%s' is not logistic, results may not be what you intend." % (dic['name'], dic['inputs'][1])
-        print "Initialized %s cost '%s' on GPU %d" % (self.cost_name, name, dic['gpu'])
+            print("WARNING: Layer '%s': input '%s' is not logistic, results may not be what you intend." % (dic['name'], dic['inputs'][1]))
+        print("Initialized %s cost '%s' on GPU %d" % (self.cost_name, name, dic['gpu']))
         return dic
     
 class CrossEnt2CostParser(FlickrBaseCost):
@@ -1317,7 +1317,7 @@ class MultiSoftmaxCostParser(CostParser):
 
         dic['numOut'] = dic['numInputs'][1]
         
-        print "Initialized multi-softmax cost '%s' on GPU %d" % (name, dic['gpu'])
+        print("Initialized multi-softmax cost '%s' on GPU %d" % (name, dic['gpu']))
         return dic
         
 class SumOfSquaresCostParser(CostParser):
@@ -1326,7 +1326,7 @@ class SumOfSquaresCostParser(CostParser):
         
     def parse(self, name, mcp, prev_layers, model):
         dic = CostParser.parse(self, name, mcp, prev_layers, model)
-        print "Initialized sum-of-squares cost '%s' on GPU %d" % (name, dic['gpu'])
+        print("Initialized sum-of-squares cost '%s' on GPU %d" % (name, dic['gpu']))
         return dic
     
 class GatedSumOfSquaresCostParser(CostParser):
@@ -1338,7 +1338,7 @@ class GatedSumOfSquaresCostParser(CostParser):
 
         self.verify_input_dims([1, None]) # First input is gate
         
-        print "Initialized gated sum-of-squares cost '%s' on GPU %d" % (name, dic['gpu'])
+        print("Initialized gated sum-of-squares cost '%s' on GPU %d" % (name, dic['gpu']))
         return dic
     
 class TICACostParser(CostParser):
@@ -1356,7 +1356,7 @@ class TICACostParser(CostParser):
         
         self.verify_img_size()
 
-        print "Initialized TICA cost '%s' on GPU %d" % (name, dic['gpu'])
+        print("Initialized TICA cost '%s' on GPU %d" % (name, dic['gpu']))
         return dic
 
 # All the layer parsers

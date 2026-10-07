@@ -8,7 +8,7 @@ from math import sqrt
 import sys
 from pylab import *
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
     
 class JPEGBatchLoaderThread(Thread):
     def __init__(self, data_dir, path, freq_to_id, tgt, tgt_labels, list_out):
@@ -27,7 +27,8 @@ class JPEGBatchLoaderThread(Thread):
         return [freq_to_id[t] for t in raw_tags if t in freq_to_id]
 
     @staticmethod
-    def load_jpeg_batch((strings, sizes, labels), freq_to_id, tgt, tgt_labels):
+    def load_jpeg_batch(xxx_todo_changeme, freq_to_id, tgt, tgt_labels):
+        (strings, sizes, labels) = xxx_todo_changeme
         tgt_labels[:] = 0
         for k,s in enumerate(strings):
             ima = n.asarray(Image.open(StringIO(s)).convert('RGB'))
@@ -119,14 +120,14 @@ class JPEGCroppedFlickrDP(FlickrDP):
         # Maintain poitners to previously-returned data matrices so they don't get garbage collected.
         # I've never seen this happen but it's a safety measure.
         self.data = [None, None]
-        self.cropped_data = [n.zeros((0*self.data_mult, self.get_data_dims()), dtype=n.float32) for x in xrange(2)]
+        self.cropped_data = [n.zeros((0*self.data_mult, self.get_data_dims()), dtype=n.float32) for x in range(2)]
         if self.test:
-            self.orig_data = [n.zeros((self.batch_size, self.img_size**2*3), dtype=n.uint8) for x in xrange(1)]
-            self.orig_labels = [n.zeros((self.batch_size, self.get_num_classes()), dtype=n.float32) for x in xrange(2)]
+            self.orig_data = [n.zeros((self.batch_size, self.img_size**2*3), dtype=n.uint8) for x in range(1)]
+            self.orig_labels = [n.zeros((self.batch_size, self.get_num_classes()), dtype=n.float32) for x in range(2)]
         else:
-            self.orig_data = [n.zeros((self.batch_size, self.img_size**2*3), dtype=n.uint8) for x in xrange(2)]
+            self.orig_data = [n.zeros((self.batch_size, self.img_size**2*3), dtype=n.uint8) for x in range(2)]
             # There have to be 3 copies of labels because this matrix actually gets used by the training code
-            self.orig_labels = [n.zeros((self.batch_size, self.get_num_classes()), dtype=n.float32) for x in xrange(3)]
+            self.orig_labels = [n.zeros((self.batch_size, self.get_num_classes()), dtype=n.float32) for x in range(3)]
             
         self.loader_thread, self.color_noise_thread = None, None
         self.convnet = dp_params['convnet']
@@ -251,7 +252,7 @@ class JPEGCroppedFlickrDP(FlickrDP):
                                    (self.border_size, self.border_size),
                                   (self.border_size*2, 0), (self.border_size*2, self.border_size*2)]
                 end_positions = [(sy+self.inner_size, sx+self.inner_size) for (sy,sx) in start_positions]
-                for i in xrange(self.num_views/2):
+                for i in range(self.num_views/2):
                     pic = y[:,:,start_positions[i][0]:end_positions[i][0],start_positions[i][1]:end_positions[i][1]]
                     target[i * x.shape[0]:(i+1)* x.shape[0],:] = pic.reshape((x.shape[0], self.get_data_dims()))
                     target[(self.num_views/2 + i) * x.shape[0]:(self.num_views/2 +i+1)* x.shape[0],:] = pic[:,:,:,::-1].reshape((x.shape[0],self.get_data_dims()))
@@ -259,7 +260,7 @@ class JPEGCroppedFlickrDP(FlickrDP):
                 pic = y[:,:,self.border_size:self.border_size+self.inner_size,self.border_size:self.border_size+self.inner_size] # just take the center for now
                 target[:,:] = pic.reshape((x.shape[0], self.get_data_dims()))
         else:
-            for c in xrange(0, x.shape[0], self.crop_chunk): # loop over cases in chunks
+            for c in range(0, x.shape[0], self.crop_chunk): # loop over cases in chunks
                 startY, startX = nr.randint(0,self.border_size*2 + 1), nr.randint(0,self.border_size*2 + 1)
 
                 endY, endX = startY + self.inner_size, startX + self.inner_size
@@ -286,7 +287,7 @@ class DummyConvNetCEDP(LabeledDummyDataProvider):
         
         dic['data'] = n.require(dic['data'].T, requirements='F')
         dic['labels'] = n.zeros((self.get_data_dims(idx=1), dic['data'].shape[1]), dtype=n.float32, order='F')
-        for c in xrange(dic['labels'].shape[1]): # loop over cases
+        for c in range(dic['labels'].shape[1]): # loop over cases
             r = nr.randint(0, dic['labels'].shape[0])
             dic['labels'][r,c] = 1
         

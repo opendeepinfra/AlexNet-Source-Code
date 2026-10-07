@@ -82,7 +82,7 @@ ConvNet::ConvNet(PyObject* layerParams, intv& deviceIDs, vector<intv*>& deviceCP
         PyObject* inputList = PyDict_GetItemString(paramsDict, "inputs");
         if (inputList != NULL) {
             for (int i = 0; i < PyList_GET_SIZE(inputList); i++) {
-                string inputName = PyString_AsString(PyList_GetItem(inputList, i));
+                string inputName = PyUnicode_AsUTF8(PyList_GetItem(inputList, i));
                 it->second->addPrev(_layerMap[inputName]);
                 _layerMap[inputName]->addNext(it->second);
             }

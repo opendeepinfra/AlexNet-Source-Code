@@ -1,7 +1,7 @@
 import os
 import sys
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
 from util import *
 
 src = '/ais/gobi3/u/ilya/flickr_85/'
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     c_sizes = []
     c_labels = []
     out_b = 1
-    for b in xrange(977):
+    for b in range(977):
         failed = 0
         strings, sizes, labels = unpickle(os.path.join(src, '%s' % b))
         for s,z,l in zip(strings, sizes, labels):
@@ -33,9 +33,9 @@ if __name__ == "__main__":
                     c_strings = []
                     c_sizes = []
                     c_labels = []
-            except IOError,e:
+            except IOError as e:
                 failed += 1
-        print "Batch %d failed: %d" % (b, failed)
+        print("Batch %d failed: %d" % (b, failed))
             
     if len(c_strings) > 0:
         save_batch(c_strings, c_sizes, c_labels, out_b)

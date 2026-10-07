@@ -1,7 +1,7 @@
 import os
 import sys
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
 from util import *
 
 src = '/ais/gobi3/u/ilya/jpg_valid_2010_85/'
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     c_labels = []
     c_wnids = []
     out_b = 2000
-    for b in xrange(49):
+    for b in range(49):
         failed = 0
         strings, sizes, labels = unpickle(os.path.join(src, '%s' % b))
         for s,l in zip(strings, labels):
@@ -32,9 +32,9 @@ if __name__ == "__main__":
                     c_strings = []
                     c_labels = []
                     c_wnids = []
-            except IOError,e:
+            except IOError as e:
                 failed += 1
-        print "Batch %d failed: %d" % (b, failed)
+        print("Batch %d failed: %d" % (b, failed))
             
     if len(c_strings) > 0:
         save_batch(c_strings, c_labels, c_wnids, out_b)

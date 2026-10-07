@@ -1,0 +1,58 @@
+# Build the _ConvNet Python extension for the Hai Platform / K8S runtime.
+#
+# Replaces the original Makefile-distrib + common-gcc-cuda-4.0.mk pair, which
+# targeted CUDA 4.0 and sm_20 (and relied on a missing common-gcc-cuda-4.0.mk).
+# Target here: CUDA 11.8, sm_70 (Tesla V100), Python 3.8.
+
+CUDA_INSTALL_PATH ?= /usr/local/cuda
+NVCC               := $(CUDA_INSTALL_PATH)/bin/nvcc
+CXX                := g++
+
+PYTHON_INCLUDE_PATH ?= /usr/include/python3.8
+# The 2012 sources do `#include <arrayobject.h>` (no `numpy/` prefix), so the
+# numpy *sub*directory must be on the include path.
+NUMPY_INCLUDE_PATH  ?= $(shell python3 -c "import numpy; print(numpy.get_include())")/numpy
+
+MODELNAME   := _ConvNet
+INITNAME    := PyInit__ConvNet
+INCLUDES    := -I$(PYTHON_INCLUDE_PATH) -I$(NUMPY_INCLUDE_PATH) \
+               -I./include -I./include/common -I./include/cudaconv2 -I./include/nvmatrix
+COMMONFLAGS := -DUNIX -DNUMPY_INTERFACE -DMODELNAME=$(MODELNAME) -DINITNAME=$(INITNAME) -D_GNU_SOURCE
+
+# Tesla V100 = sm_70
+GENCODE_ARCH := -gencode=arch=compute_70,code=sm_70
+
+# src/test.cu is a standalone unit-test program (it defines main() and needs the
+# CUDA SDK timer plus a test.cuh that is not part of this release); it is not
+# linked into the Python extension.
+CUFILES := $(filter-out src/test.cu,$(wildcard src/*.cu src/cudaconv2/*.cu src/nvmatrix/*.cu))
+CCFILES := $(wildcard src/common/*.cpp src/*.cpp)
+
+OBJDIR  := build
+CUOBJ   := $(patsubst %.cu,$(OBJDIR)/%.cu.o,$(CUFILES))
+CCOBJ   := $(patsubst %.cpp,$(OBJDIR)/%.cpp.o,$(CCFILES))
+TARGET  := $(MODELNAME).so
+
+NVCCFLAGS := -O2 -m64 $(GENCODE_ARCH) $(COMMONFLAGS) $(INCLUDES) \
+             --compiler-options -fPIC -Xcompiler -fno-strict-aliasing
+CXXFLAGS  := -O2 -m64 -fPIC -fno-strict-aliasing $(COMMONFLAGS) $(INCLUDES)
+
+LDFLAGS := -shared -L$(CUDA_INSTALL_PATH)/lib64 -lcudart -lcublas -lpthread
+
+.PHONY: all clean dirs
+
+all: $(TARGET)
+
+$(TARGET): $(CUOBJ) $(CCOBJ)
+	$(NVCC) -o $@ $^ $(LDFLAGS)
+
+$(OBJDIR)/%.cu.o: %.cu
+	@mkdir -p $(dir $@)
+	$(NVCC) $(NVCCFLAGS) -o $@ -c $<
+
+$(OBJDIR)/%.cpp.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
+
+clean:
+	rm -rf $(OBJDIR) $(TARGET)
