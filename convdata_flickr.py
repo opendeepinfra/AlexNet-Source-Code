@@ -8,7 +8,7 @@ from math import sqrt
 import sys
 from pylab import *
 from PIL import Image
-from io import StringIO
+from io import BytesIO
     
 class JPEGBatchLoaderThread(Thread):
     def __init__(self, data_dir, path, freq_to_id, tgt, tgt_labels, list_out):
@@ -31,7 +31,7 @@ class JPEGBatchLoaderThread(Thread):
         (strings, sizes, labels) = xxx_todo_changeme
         tgt_labels[:] = 0
         for k,s in enumerate(strings):
-            ima = n.asarray(Image.open(StringIO(s)).convert('RGB'))
+            ima = n.asarray(Image.open(BytesIO(s)).convert('RGB'))
             tgt[k,:] = ima.swapaxes(0,2).swapaxes(1,2).flatten()
             tgt_labels[k, JPEGBatchLoaderThread.raw_to_freq_id(labels[k], freq_to_id)] = 1
 

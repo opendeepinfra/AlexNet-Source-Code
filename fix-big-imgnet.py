@@ -1,7 +1,7 @@
 import os
 import sys
 from PIL import Image
-from io import StringIO
+from io import BytesIO
 from util import *
 
 src = '/ais/gobi3/u/ilya/jpg_valid_2010_85/'
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         strings, sizes, labels = unpickle(os.path.join(src, '%s' % b))
         for s,l in zip(strings, labels):
             try:
-                im = Image.open(StringIO(s)).convert('RGB')
+                im = Image.open(BytesIO(s)).convert('RGB')
                 c_strings += [s]
                 c_labels += [l[1]]
                 c_wnids += [l[0]]

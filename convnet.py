@@ -12,6 +12,7 @@ from convdata import *
 from convdata_jpeg import JPEGCroppedImageNetLogRegDP
 from convdata_flickr import JPEGCroppedFlickrCEDP, DummyConvNetCEDP
 from convdata_cifar import CIFARDataProvider, CroppedCIFARDataProvider
+from convdata_tinyimagenet import TinyImageNetDataProvider
 from os import linesep as NL
 import pylab as pl
 import copy as cp
@@ -79,7 +80,9 @@ class ConvNet(IGPUModel):
             self.op.set_value('save_path', '')
             self.op.set_value('train_batch_range', '0')
             self.op.set_value('test_batch_range', '0')
-            self.op.set_value('data_path', '')
+            # NOTE: the original also cleared --data-path here, which only works
+            # with providers that synthesise their own data. Real providers
+            # (cifar, tinyimagenet) need it, so it is left alone.
             
     # Make sure the data provider returned data in proper format
     def parse_batch_data(self, batch_data, train=True):
@@ -207,6 +210,7 @@ class ConvNet(IGPUModel):
         
         DataProvider.register_data_provider('cifar', 'CIFAR', CIFARDataProvider)
         DataProvider.register_data_provider('cifar-cropped', 'Cropped CIFAR', CroppedCIFARDataProvider)
+        DataProvider.register_data_provider('tinyimagenet', 'Tiny-ImageNet-200', TinyImageNetDataProvider)
         return op
     
 if __name__ == "__main__":

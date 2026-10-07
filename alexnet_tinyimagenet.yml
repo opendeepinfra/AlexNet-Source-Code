@@ -1,0 +1,37 @@
+# Hai Platform task spec: original 2012 AlexNet (ported) on Tiny-ImageNet-200.
+#
+# Submit:  hai-cli run alexnet_tinyimagenet.yml
+# Status:  hai-cli status alexnet_tinyimagenet
+# Logs:    hai-cli logs alexnet_tinyimagenet | tail -40
+#
+# The workspace URI below resolves to the cluster shared directory
+#   /nfs-shared/hai-single/hai-platform/workspace/hfai/haiadmin/workspaces/alexnet
+# which is what gets mounted into the task pod.
+#
+# Data layout (see make-data/prepare_tinyimagenet.py):
+#   data/tiny-imagenet-train.npy   100000 x 3 x 64 x 64 uint8
+#   data/tiny-imagenet-val.npy      10000 x 3 x 64 x 64 uint8
+# train-range 1-100  = one full epoch (batch_size 1000 in the data provider)
+# test-range  1-10   = the whole 10k validation set
+version: 2
+name: alexnet_tinyimagenet
+priority: 30
+spec:
+  workspace: s3://hfai/haiadmin/workspaces/alexnet
+  entrypoint: run_tinyimagenet.py
+  parameters: >-
+    --data-path data
+    --data-provider tinyimagenet
+    --layer-def layers-tinyimagenet/layers-tinyimagenet.cfg
+    --layer-params layers-tinyimagenet/layer-params-tinyimagenet.cfg
+    --train-range 1-100
+    --test-range 1-10
+    --epochs 60
+    --mini 128
+    --gpu 0
+    --test-freq 25
+    --save-path output
+resource:
+  image: default
+  group: training
+  node_count: 1

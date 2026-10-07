@@ -417,10 +417,10 @@ class NailbedLayerParser(LayerWithInputParser):
         self.verify_num_range(dic['channels'], 'channels', 1, None)
         
         # Computed values
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
-        dic['outputsX'] = (dic['imgSize'] + dic['stride'] - 1) / dic['stride']
-        dic['start'] = (dic['imgSize'] - dic['stride'] * (dic['outputsX'] - 1)) / 2
+        dic['outputsX'] = (dic['imgSize'] + dic['stride'] - 1) // dic['stride']
+        dic['start'] = (dic['imgSize'] - dic['stride'] * (dic['outputsX'] - 1)) // 2
         dic['outputs'] = dic['channels'] * dic['outputsX']**2
         
         self.verify_num_range(dic['outputsX'], 'outputsX', 0, None)
@@ -449,9 +449,9 @@ class GaussianBlurLayerParser(LayerWithInputParser):
         self.verify_int_in(dic['filterSize'], 'filterSize', [3, 5, 7, 9])
         
         # Computed values
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
-        dic['filter'] = n.array([exp(-(dic['filterSize']/2 - i)**2 / float(2 * dic['stdev']**2)) 
+        dic['filter'] = n.array([exp(-(dic['filterSize']//2 - i)**2 / float(2 * dic['stdev']**2)) 
                                  for i in range(dic['filterSize'])], dtype=n.float32).reshape(1, dic['filterSize'])
         dic['filter'] /= dic['filter'].sum()
         self.verify_img_size()
@@ -475,7 +475,7 @@ class HorizontalReflectionLayerParser(LayerWithInputParser):
         self.verify_num_range(dic['channels'], 'channels', 1, 3)
 
         # Computed values
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         self.verify_img_size()
         
@@ -494,7 +494,7 @@ class ResizeLayerParser(LayerWithInputParser):
         dic['usesInputs'] = False
         
         dic['channels'] = mcp.safe_get_int(name, 'channels')
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         
         dic['scale'] = mcp.safe_get_float(name, 'scale')
@@ -527,7 +527,7 @@ class RandomScaleLayerParser(LayerWithInputParser):
         self.verify_num_range(dic['channels'], 'channels', 1, None)
         
         # Computed values
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         
         dic['maxScale'] = mcp.safe_get_float(name, 'maxScale')
@@ -562,7 +562,7 @@ class ColorTransformLayerParser(LayerWithInputParser):
         dic['usesInputs'] = False
 
         # Computed values
-        dic['imgPixels'] = dic['numInputs'][0] / 3
+        dic['imgPixels'] = dic['numInputs'][0] // 3
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         dic['channels'] = 3
         dic['outputs'] = dic['numInputs'][0]
@@ -947,7 +947,7 @@ class LocalLayerParser(WeightLayerParser):
     # of image channels to which each group is connected
     def gen_rand_conns(self, groups, channels, filterChannels, inputIdx):
         dic = self.dic
-        overSample = groups * filterChannels / channels
+        overSample = groups * filterChannels // channels
         filterConns = [x for i in range(overSample) for x in nr.permutation(list(range(channels)))]
         
         if dic['initCFunc']: # Initialize connectivity from outside source
@@ -996,14 +996,14 @@ class LocalLayerParser(WeightLayerParser):
         self.verify_num_range(dic['groups'], 'groups', 1, None)
         
         # Computed values
-        dic['imgPixels'] = [numInputs/channels for numInputs,channels in zip(dic['numInputs'], dic['channels'])]
+        dic['imgPixels'] = [numInputs//channels for numInputs,channels in zip(dic['numInputs'], dic['channels'])]
         dic['imgSize'] = [int(n.sqrt(imgPixels)) for imgPixels in dic['imgPixels']]
         self.verify_num_range(dic['imgSize'], 'imgSize', 1, None)
         dic['filters'] = [filters*groups for filters,groups in zip(dic['filters'], dic['groups'])]
         dic['filterPixels'] = [filterSize**2 for filterSize in dic['filterSize']]
         dic['modulesX'] = [1 + int(ceil((2 * padding + imgSize - filterSize) / float(stride))) for padding,imgSize,filterSize,stride in zip(dic['padding'], dic['imgSize'], dic['filterSize'], dic['stride'])]
 
-        dic['filterChannels'] = [channels/groups for channels,groups in zip(dic['channels'], dic['groups'])]
+        dic['filterChannels'] = [channels//groups for channels,groups in zip(dic['channels'], dic['groups'])]
         if max(dic['randSparse']): # When randSparse is turned on for any input, filterChannels must be given for all of them
             dic['filterChannels'] = mcp.safe_get_int_list(name, 'filterChannels', default=dic['filterChannels'])
             self.verify_num_params(['filterChannels'])
@@ -1039,7 +1039,7 @@ class LocalLayerParser(WeightLayerParser):
             self.verify_divisible(dic['filters'], 16*dic['groups'][i], 'filters * groups', input_idx=i)
         
             dic['padding'][i] = -dic['padding'][i]
-        dic['overSample'] = [groups*filterChannels/channels for groups,filterChannels,channels in zip(dic['groups'], dic['filterChannels'], dic['channels'])]
+        dic['overSample'] = [groups*filterChannels//channels for groups,filterChannels,channels in zip(dic['groups'], dic['filterChannels'], dic['channels'])]
         dic['weightsPerFilter'] = [fc * (fz**2) for fc, fz in zip(dic['filterChannels'], dic['filterSize'])]
         
         return dic    
@@ -1146,7 +1146,7 @@ class PoolLayerParser(LayerWithInputParser):
         dic['usesActs'] = 'pool' != 'avg'
         dic['usesInputs'] = 'pool' != 'avg'
         
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         
         self.verify_num_range(dic['sizeX'], 'sizeX', 1, dic['imgSize'])
@@ -1192,7 +1192,7 @@ class NormLayerParser(LayerWithInputParser):
         dic['size'] = mcp.safe_get_int(name, 'size')
         dic['blocked'] = mcp.safe_get_bool(name, 'blocked', default=False)
         
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         
         # Contrast normalization layer does not use its inputs
@@ -1351,7 +1351,7 @@ class TICACostParser(CostParser):
         dic['channels'] = mcp.safe_get_int(name, 'channels')
         dic['sizeX'] = mcp.safe_get_int(name, 'sizeX')
         
-        dic['imgPixels'] = dic['numInputs'][0] / dic['channels']
+        dic['imgPixels'] = dic['numInputs'][0] // dic['channels']
         dic['imgSize'] = int(n.sqrt(dic['imgPixels']))
         
         self.verify_img_size()
@@ -1408,11 +1408,15 @@ neuron_parsers = sorted([NeuronParser('ident', 'f(x) = x', uses_acts=False, uses
                          ParamNeuronParser('drelu[a]', 'f(x) = x - a * tanh(x / a)', uses_acts=False, uses_inputs=True)],
                         key=lambda x:x.type)
 
+# Python 3 no longer allows ordering arbitrary objects, so the sort key that
+# Python 2 applied implicitly (by type name) is now given explicitly.
 lrs_parsers = sorted([ParamParser('default'),
                       ParamParser('linear[ftgtFactor,fnoiseStdev]'),
                       ParamParser('exp[ftgtFactor,fnoiseStdev]'),
                       ParamParser('dexp[ftgtFactor,fnoiseStdev,inumSteps]'),
-                      ParamParser('jdexp[ftgtFactor,fnoiseStdev,inumSteps]')])
+                      ParamParser('jdexp[ftgtFactor,fnoiseStdev,inumSteps]')],
+                     key=lambda x: x.base_type)
 
 quant_parsers = sorted([ParamParser('default'),
-                        ParamParser('half')])
+                        ParamParser('half')],
+                       key=lambda x: x.base_type)

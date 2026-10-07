@@ -11,7 +11,7 @@ import numpy.random as nr
 from convnet import ConvNet
 from options import *
 #import pygame as pg
-import Image
+from PIL import Image
 #from pygame.locals import *
 from time import sleep
 #from collections import Counter

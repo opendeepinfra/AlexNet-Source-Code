@@ -4,7 +4,7 @@ import pylab as pl
 import numpy as n
 import numpy.random as nr
 from PIL import Image
-from io import StringIO
+from io import BytesIO
 
 def print_top5(preds, lnames):
     print(preds)
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     lnames = meta['label_names']
     print("Batch: %d, img idx: %d" % (batch, img_idx))
 
-    img = n.asarray(Image.open(StringIO(data[img_idx])).convert('RGB'))
+    img = n.asarray(Image.open(BytesIO(data[img_idx])).convert('RGB'))
 
     print_top5(preds[(batch - 3000) * 1024 + img_idx], lnames)
     

@@ -24,7 +24,9 @@
 
 import re
 import pickle
+import pickle as _pickle   # the module-level names below shadow `pickle`
 import os
+import subprocess
 import numpy as n
 from math import sqrt
 
@@ -60,10 +62,10 @@ def get_gpu_lock(id=-1):
 def pickle(filename, data, compress=False):
     if compress:
         fo = zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED, allowZip64=True)
-        fo.writestr('data', pickle.dumps(data, -1))
+        fo.writestr('data', _pickle.dumps(data, -1))
     else:
         fo = open(filename, "wb")
-        pickle.dump(data, fo, protocol=pickle.HIGHEST_PROTOCOL)
+        _pickle.dump(data, fo, protocol=_pickle.HIGHEST_PROTOCOL)
     fo.close()
     
 def unpickle(filename):
@@ -71,13 +73,13 @@ def unpickle(filename):
         raise UnpickleError("Path '%s' does not exist." % filename)
     if ms is not None and ms.file(filename).startswith('gzip'):
         fo = gzip.open(filename, 'rb')
-        dict = pickle.load(fo)
+        dict = _pickle.load(fo)
     elif ms is not None and ms.file(filename).startswith('Zip'):
         fo = zipfile.ZipFile(filename, 'r', zipfile.ZIP_DEFLATED)
-        dict = pickle.loads(fo.read('data'))
+        dict = _pickle.loads(fo.read('data'))
     else:
         fo = open(filename, 'rb')
-        dict = pickle.load(fo)
+        dict = _pickle.load(fo)
     
     fo.close()
     return dict
@@ -106,5 +108,70 @@ def get_cpu():
         return 'intel'
     return 'amd'
 
+def is_kepler_machine():
+    """True when the installed GPU is a Kepler (compute capability 3.x) part.
+
+    The private 2012 tree shipped two builds of the extension: a generic
+    ``_ConvNet`` and a Kepler-tuned ``_ConvNet_k20x``; convnet.py picks between
+    them with this predicate. It is not present in the public cuda-convnet
+    drop, so it is implemented here by asking the driver for the compute
+    capability. This port builds a single sm_70 extension, so the answer is
+    False on the V100-class hardware it targets.
+    """
+    try:
+        out = subprocess.check_output(
+            ['nvidia-smi', '--query-gpu=compute_cap', '--format=csv,noheader'],
+            stderr=subprocess.STDOUT)
+    except Exception:
+        return False
+    first = out.decode('utf-8', 'replace').strip().splitlines()
+    if not first:
+        return False
+    return first[0].strip().startswith('3.')
+
 def is_windows_machine():
     return os.name == 'nt'
+
+def get_device_cpus(device_id):
+    """CPU ids that are NUMA-local to a given CUDA device.
+
+    ConvNetGPU pins each GPU's worker thread to the cores attached to that
+    GPU's PCIe root complex. This data is not computed anywhere in the public
+    cuda-convnet drop, so it is derived here from nvidia-smi plus sysfs.
+    Returns [] when the topology cannot be determined, in which case the C++
+    Thread constructor simply skips affinity binding.
+    """
+    try:
+        bdf = None
+        out = subprocess.check_output(
+            ['nvidia-smi', '--query-gpu=index,pci.bus_id', '--format=csv,noheader'],
+            stderr=subprocess.STDOUT)
+        for line in out.decode('utf-8', 'replace').strip().splitlines():
+            parts = [p.strip() for p in line.split(',')]
+            if len(parts) == 2 and parts[0].isdigit() and int(parts[0]) == device_id:
+                bdf = parts[1].lower()
+                break
+        if bdf is None:
+            return []
+        # nvidia-smi prints an 8-hex-digit PCI domain, sysfs uses 4.
+        if len(bdf) > 12:
+            bdf = bdf[-12:]
+        with open('/sys/bus/pci/devices/%s/numa_node' % bdf) as fh:
+            node = int(fh.read().strip())
+        if node < 0:
+            return []
+        with open('/sys/devices/system/node/node%d/cpulist' % node) as fh:
+            cpulist = fh.read().strip()
+        cpus = []
+        for part in cpulist.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            if '-' in part:
+                lo, hi = part.split('-')
+                cpus.extend(range(int(lo), int(hi) + 1))
+            else:
+                cpus.append(int(part))
+        return cpus
+    except Exception:
+        return []

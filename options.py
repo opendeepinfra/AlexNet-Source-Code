@@ -186,7 +186,9 @@ class OptionsParser:
             cmp = lambda x, y: (x.letter < y.letter and -1 or 1)
         elif sort_order == self.SORT_EXPR_LAST:
             cmp = lambda x, y: (type(x.default) == OptionExpression and 1 or -1)
-        return sorted(list(self.options.values()), cmp=cmp)
+        # Python 3 removed the cmp= argument to sorted(); wrap the comparator.
+        from functools import cmp_to_key
+        return sorted(list(self.options.values()), key=cmp_to_key(cmp))
     
     def print_usage(self, print_constraints=False):
         print("%s usage:" % os.path.basename(sys.argv[0]))

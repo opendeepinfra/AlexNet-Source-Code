@@ -9,7 +9,7 @@ from math import sqrt
 import sys
 from pylab import *
 from PIL import Image
-from io import StringIO
+from io import BytesIO
 from convdata import ImageNetDP
     
 class JPEGBatchLoaderThread(Thread):
@@ -32,7 +32,7 @@ class JPEGBatchLoaderThread(Thread):
         img256 = n.zeros((256, 256, 3), dtype=n.uint8) if no_crop else None
         for k,(s,l) in enumerate(zip(strings, labels)):
             try:
-                ima = n.asarray(Image.open(StringIO(s)).convert('RGB'))
+                ima = n.asarray(Image.open(BytesIO(s)).convert('RGB'))
                 if no_crop:
                     off_y, off_x = (256 - ima.shape[0]) / 2, (256 - ima.shape[1]) / 2
                     img256[:] = data_mean

@@ -307,6 +307,9 @@ class IGPUModel:
         if GPU_LOCK_NO_LOCK in self.device_ids:
             print("Not enough free GPUs!")
             sys.exit()
+        # One CPU-id list per GPU, used by ConvNetGPU to pin its worker thread
+        # to cores that are NUMA-local to that GPU.
+        self.device_cpus = [get_device_cpus(d) for d in self.device_ids]
         
     @staticmethod
     def parse_options(op):
