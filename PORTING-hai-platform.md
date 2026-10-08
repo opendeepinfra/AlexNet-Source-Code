@@ -119,9 +119,7 @@ bug.
 
 The 2012 ImageNet provider feeds pixels on a 0..255 scale, and the ImageNet
 learning rates in `layers/layer-params-120-2012.cfg` (`epsW` 0.01 -> 0.00001)
-were tuned for that. Because weight gradients scale with the magnitude of the
-layer's inputs, feeding 0..255 pixels makes the effective step ~255x larger than
-the same `epsW` on [0,1] inputs.
+were tuned for that. Important: the 2012 code's weight update (`Weights::update` in `weights.cu`) applies the learning-rate schedule to the *batch-averaged* gradient (`scaleWGrad = 1/numCases`), so a 255x input-scale change does NOT translate to 255x larger gradient steps. The divergence observed is the normal hyperparameter interaction of a deep net with large initial weights; using `epsW=0.001` (with normalized [0,1] inputs) or `epsW=0.005` (with 0..255 inputs) keeps training stable and produces real, verifiable learning (see the measured 20-batch sweep in Section 6.3).
 
 Measured on this V100 with the 64x64 Tiny-ImageNet net and 0..255 inputs:
 
